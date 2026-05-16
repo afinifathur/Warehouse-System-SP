@@ -169,6 +169,14 @@ class PrintPage extends Component
 
     public function print(): void
     {
+        Log::info('--- [START] PrintPage: print() triggered ---');
+        Log::info('PrintPage Details', [
+            'variant_id' => $this->selectedVariantId,
+            'label_type' => $this->labelType,
+            'printer' => $this->printerType,
+            'copies' => $this->copies
+        ]);
+
         $this->validationErrors = [];
         $this->flashMessage     = '';
 
@@ -212,6 +220,8 @@ class PrintPage extends Component
             Log::error('PrintPage: Print failed', ['error' => $e->getMessage()]);
             $this->flashMessage = '✗ Printing failed: ' . $e->getMessage();
             $this->flashType    = 'error';
+        } finally {
+            Log::info('--- [END] PrintPage: print() completed ---');
         }
     }
 

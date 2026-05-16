@@ -35,18 +35,23 @@ class TsplRenderer implements LabelRendererInterface
         $cmds[] = "CLS";
         
         // --- Header Zone (45% = 108 dots) ---
-        $cmds[] = "BLOCK 10,10,380,55,\"" . self::FONT_TITLE . "\",0,1,1,2,0,\"$name\"";
-        $cmds[] = "TEXT 10,75,\"" . self::FONT_NORMAL . "\",0,1,1,\"ERP: $erp\"";
+        // Increase top margin (Y=16) and line spacing (4) for better breathable layout
+        $cmds[] = "BLOCK 10,16,380,60,\"" . self::FONT_TITLE . "\",0,1,1,4,0,\"$name\"";
+        // Move ERP downward and use FONT_TITLE ("2") for better readability/hierarchy
+        $cmds[] = "TEXT 10,92,\"" . self::FONT_TITLE . "\",0,1,1,\"ERP: $erp\"";
         
         // --- Barcode Zone (30% = 72 dots) ---
-        $cmds[] = "BARCODE 40,120,\"128\",50,0,0,2,2,\"$barcode\"";
+        // Width multiplier increased to 3 for bold industrial dominance.
+        $cmds[] = "BARCODE 35,128,\"128\",50,0,0,3,3,\"$barcode\"";
+        
+        // --- Human Readable Text (Industrial Best Practice) ---
+        // Balanced spacing: 4 dots below barcode, 23 dots above footer.
+        $cmds[] = "TEXT 200,182,\"" . self::FONT_TITLE . "\",0,1,1,2,\"$barcode\"";
         
         // --- Footer Zone (25% = 60 dots) ---
-        // Barcode human-readable centered
-        $cmds[] = "TEXT 200,195,\"" . self::FONT_NORMAL . "\",0,1,1,2,\"$barcode\"";
-        // Split Footer: Last In (Left) and Bin (Right)
-        $cmds[] = "TEXT 10,215,\"" . self::FONT_NORMAL . "\",0,1,1,\"Last In: $lastIn\"";
-        $cmds[] = "TEXT 390,215,\"" . self::FONT_NORMAL . "\",0,1,1,3,\"Bin: $bin\"";
+        // Shifted to Y=225 to provide maximum breathing room for the barcode area.
+        $cmds[] = "TEXT 10,225,\"" . self::FONT_NORMAL . "\",0,1,1,\"Last In: $lastIn\"";
+        $cmds[] = "TEXT 390,225,\"" . self::FONT_NORMAL . "\",0,1,1,3,\"Bin: $bin\"";
         
         $cmds[] = "PRINT 1,1";
 

@@ -10,10 +10,12 @@ class PrintService
 {
     private const PRINTER_PORT = 9100;
     private const SOCKET_TIMEOUT = 3;
+    private const DEFAULT_TSC_PRINTER_NAME = 'TSC TE244';
 
     public function __construct(
         private readonly TsplRenderer $tsplRenderer,
-        private readonly HtmlRenderer $htmlRenderer
+        private readonly HtmlRenderer $htmlRenderer,
+        private readonly PrintJobService $printJobService
     ) {}
 
     /**
@@ -24,7 +26,7 @@ class PrintService
      * @param string $printerType TSC | EPSON
      * @param string|null $printerIp Required if printerType is TSC
      * @param int $copies Number of copies
-     * @return mixed Boolean true for TSC (direct socket), HTML string for EPSON
+     * @return mixed Boolean true for TSC (queued), HTML string for EPSON
      */
     public function print(
         array $data,
@@ -42,10 +44,6 @@ class PrintService
         }
 
         if ($printerType === 'TSC') {
-            if (empty($printerIp)) {
-                throw new \InvalidArgumentException("Printer IP is required for TSC printers.");
-            }
-
             $payload = $this->tsplRenderer->render($data, $templateType);
             
             // Inject copies into TSPL (Replace default PRINT 1,1)
@@ -55,7 +53,8 @@ class PrintService
                 throw new \Exception("Rendered payload is empty. Aborting print.");
             }
 
-            return $this->sendToTsc($printerIp, $payload);
+            $this->printJobService->createTscJob($payload, self::DEFAULT_TSC_PRINTER_NAME, $templateType, $copies);
+            return "TSC Print job queued for " . self::DEFAULT_TSC_PRINTER_NAME;
         }
 
         if ($printerType === 'EPSON') {
@@ -106,6 +105,7 @@ HTML;
 
     /**
      * Send raw payload to TSC printer via TCP socket.
+     * @deprecated Use PrintJobService and the Windows Agent for industrial printing.
      */
     private function sendToTsc(string $ip, string $payload): bool
     {

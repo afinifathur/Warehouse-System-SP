@@ -1,0 +1,7 @@
+{
+  "server_url": "http://10.88.8.97/warehouse-system-sparepart/public/index.php/api",
+  "machine_id": "WAREHOUSE-PC-01",
+  "printer_name": "TSC TE244",
+  "poll_interval": 2,
+  "ignore_existing_pending_on_startup": true
+}
