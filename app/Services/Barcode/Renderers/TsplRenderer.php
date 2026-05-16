@@ -20,8 +20,8 @@ class TsplRenderer implements LabelRendererInterface
     {
         $this->validateData($data, ['item_name', 'erp_code', 'barcode', 'last_stock_in_date']);
 
-        // Character limit of 28 ensures Font "2" fits within 380 dots with clean margins.
-        $name = $this->formatItemName($data['item_name'], 28);
+        // Final thermal safety: Character limit reduced to 24 to handle font "2" heat spread.
+        $nameLines = $this->formatItemName($data['item_name'], 24);
         $erp = $this->sanitize($data['erp_code']);
         $barcode = $this->sanitize($data['barcode']);
         $lastIn = $this->sanitize($data['last_stock_in_date']);
@@ -34,25 +34,34 @@ class TsplRenderer implements LabelRendererInterface
         $cmds[] = "REFERENCE 0,0";
         $cmds[] = "OFFSET 0 mm";
         $cmds[] = "CLS";
+        $cmds[] = "SET TEAR ON";
         
-        // --- Header Zone (45% = 108 dots) ---
-        // deterministically formatted to max 2 lines with ellipsis for predictable UI parity.
-        $cmds[] = "BLOCK 10,16,380,60,\"" . self::FONT_TITLE . "\",0,1,1,4,0,\"$name\"";
-        // Move ERP downward and use FONT_TITLE ("2") for better readability/hierarchy
-        $cmds[] = "TEXT 10,92,\"" . self::FONT_TITLE . "\",0,1,1,\"ERP: $erp\"";
+        // --- Header Zone (Item Name) ---
+        // Final calibration: increased Y-offset spacing to prevent hardware thermal bleed.
+        $cmds[] = "TEXT 10,12,\"" . self::FONT_TITLE . "\",0,1,1,\"" . $nameLines['line1'] . "\"";
         
-        // --- Barcode Zone (30% = 72 dots) ---
-        // Width multiplier increased to 3 for bold industrial dominance.
-        $cmds[] = "BARCODE 35,128,\"128\",50,0,0,3,3,\"$barcode\"";
+        $erpY = 44; // Safe Y if only 1 line exists
+        if (!empty($nameLines['line2'])) {
+            $cmds[] = "TEXT 10,40,\"" . self::FONT_TITLE . "\",0,1,1,\"" . $nameLines['line2'] . "\"";
+            $erpY = 68; // Push ERP down to prevent overlap with name line 2
+        }
+
+        // ERP rendering: Downgrade to FONT_NORMAL ("1")
+        $cmds[] = "TEXT 10,$erpY,\"" . self::FONT_NORMAL . "\",0,1,1,\"ERP: $erp\"";
         
-        // --- Human Readable Text (Industrial Best Practice) ---
-        // Balanced spacing: 4 dots below barcode, 23 dots above footer.
-        $cmds[] = "TEXT 200,182,\"" . self::FONT_TITLE . "\",0,1,1,2,\"$barcode\"";
+        // --- Barcode Zone ---
+        // Width multiplier balanced at 2,2 for 30x50mm industrial labels.
+        $cmds[] = "BARCODE 35,92,\"128\",50,0,0,2,2,\"$barcode\"";
         
-        // --- Footer Zone (25% = 60 dots) ---
-        // Shifted to Y=225 to provide maximum breathing room for the barcode area.
-        $cmds[] = "TEXT 10,225,\"" . self::FONT_NORMAL . "\",0,1,1,\"Last In: $lastIn\"";
-        $cmds[] = "TEXT 390,225,\"" . self::FONT_NORMAL . "\",0,1,1,3,\"Bin: $bin\"";
+        // --- Human Readable Barcode Text ---
+        // Dynamic X positioning for centered alignment based on barcode length.
+        $barcodeTextX = max(120, 220 - (mb_strlen($barcode) * 8));
+        $cmds[] = "TEXT $barcodeTextX,148,\"" . self::FONT_TITLE . "\",0,1,1,2,\"$barcode\"";
+        
+        // --- Footer Zone ---
+        // Shifted for maximum breathing room at the bottom.
+        $cmds[] = "TEXT 10,205,\"" . self::FONT_NORMAL . "\",0,1,1,\"Last In: $lastIn\"";
+        $cmds[] = "TEXT 390,205,\"" . self::FONT_NORMAL . "\",0,1,1,3,\"Bin: $bin\"";
         
         $cmds[] = "PRINT 1,1";
 
@@ -96,15 +105,15 @@ class TsplRenderer implements LabelRendererInterface
 
     /**
      * Formats item name for deterministic 2-line rendering.
-     * Uses word-aware truncation and adds ellipsis if the second line overflows.
+     * Returns array with line1 and line2.
      */
-    private function formatItemName(string $name, int $limitPerLine = 28): string
+    private function formatItemName(string $name, int $limitPerLine = 24): array
     {
         $name = strtoupper($this->sanitize($name));
         $words = explode(' ', $name);
         
-        $lines = ['', ''];
-        $currentLine = 0;
+        $lines = ['line1' => '', 'line2' => ''];
+        $currentLine = 'line1';
 
         foreach ($words as $word) {
             if (empty($word)) continue;
@@ -112,30 +121,28 @@ class TsplRenderer implements LabelRendererInterface
             $space = $lines[$currentLine] === '' ? '' : ' ';
             $proposed = $lines[$currentLine] . $space . $word;
             
-            if (strlen($proposed) <= $limitPerLine) {
+            if (mb_strlen($proposed) <= $limitPerLine) {
                 $lines[$currentLine] = $proposed;
             } else {
-                if ($currentLine === 0) {
-                    $currentLine = 1;
-                    // If the first word of the second line is too long, force truncate it
-                    if (strlen($word) > $limitPerLine) {
-                        $lines[$currentLine] = substr($word, 0, $limitPerLine - 3) . '...';
+                if ($currentLine === 'line1') {
+                    $currentLine = 'line2';
+                    if (mb_strlen($word) > $limitPerLine) {
+                        $lines[$currentLine] = mb_substr($word, 0, $limitPerLine - 3) . '...';
                         break;
                     }
                     $lines[$currentLine] = $word;
                 } else {
-                    // Already on second line, can't fit more words - truncate and add ellipsis
-                    if (strlen($lines[1]) > $limitPerLine - 3) {
-                        $lines[1] = substr($lines[1], 0, $limitPerLine - 3) . '...';
+                    if (mb_strlen($lines['line2']) > $limitPerLine - 3) {
+                        $lines['line2'] = mb_substr($lines['line2'], 0, $limitPerLine - 3) . '...';
                     } else {
-                        $lines[1] .= '...';
+                        $lines['line2'] .= '...';
                     }
                     break;
                 }
             }
         }
 
-        return implode("\r\n", array_filter($lines));
+        return $lines;
     }
 
     private function sanitize(string $value): string
