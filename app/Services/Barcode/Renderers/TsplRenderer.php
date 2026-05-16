@@ -20,7 +20,8 @@ class TsplRenderer implements LabelRendererInterface
     {
         $this->validateData($data, ['item_name', 'erp_code', 'barcode', 'last_stock_in_date']);
 
-        $name = $this->sanitize(strtoupper($data['item_name']));
+        // Character limit of 28 ensures Font "2" fits within 380 dots with clean margins.
+        $name = $this->formatItemName($data['item_name'], 28);
         $erp = $this->sanitize($data['erp_code']);
         $barcode = $this->sanitize($data['barcode']);
         $lastIn = $this->sanitize($data['last_stock_in_date']);
@@ -35,7 +36,7 @@ class TsplRenderer implements LabelRendererInterface
         $cmds[] = "CLS";
         
         // --- Header Zone (45% = 108 dots) ---
-        // Increase top margin (Y=16) and line spacing (4) for better breathable layout
+        // deterministically formatted to max 2 lines with ellipsis for predictable UI parity.
         $cmds[] = "BLOCK 10,16,380,60,\"" . self::FONT_TITLE . "\",0,1,1,4,0,\"$name\"";
         // Move ERP downward and use FONT_TITLE ("2") for better readability/hierarchy
         $cmds[] = "TEXT 10,92,\"" . self::FONT_TITLE . "\",0,1,1,\"ERP: $erp\"";
@@ -91,6 +92,50 @@ class TsplRenderer implements LabelRendererInterface
         $cmds[] = "PRINT 1,1";
 
         return implode("\r\n", $cmds) . "\r\n";
+    }
+
+    /**
+     * Formats item name for deterministic 2-line rendering.
+     * Uses word-aware truncation and adds ellipsis if the second line overflows.
+     */
+    private function formatItemName(string $name, int $limitPerLine = 28): string
+    {
+        $name = strtoupper($this->sanitize($name));
+        $words = explode(' ', $name);
+        
+        $lines = ['', ''];
+        $currentLine = 0;
+
+        foreach ($words as $word) {
+            if (empty($word)) continue;
+
+            $space = $lines[$currentLine] === '' ? '' : ' ';
+            $proposed = $lines[$currentLine] . $space . $word;
+            
+            if (strlen($proposed) <= $limitPerLine) {
+                $lines[$currentLine] = $proposed;
+            } else {
+                if ($currentLine === 0) {
+                    $currentLine = 1;
+                    // If the first word of the second line is too long, force truncate it
+                    if (strlen($word) > $limitPerLine) {
+                        $lines[$currentLine] = substr($word, 0, $limitPerLine - 3) . '...';
+                        break;
+                    }
+                    $lines[$currentLine] = $word;
+                } else {
+                    // Already on second line, can't fit more words - truncate and add ellipsis
+                    if (strlen($lines[1]) > $limitPerLine - 3) {
+                        $lines[1] = substr($lines[1], 0, $limitPerLine - 3) . '...';
+                    } else {
+                        $lines[1] .= '...';
+                    }
+                    break;
+                }
+            }
+        }
+
+        return implode("\r\n", array_filter($lines));
     }
 
     private function sanitize(string $value): string
