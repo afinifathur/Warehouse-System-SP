@@ -31,60 +31,126 @@
 </head>
 <body class="bg-surface text-on-surface flex min-h-screen antialiased">
     <!-- SideNavBar (Desktop Shell) -->
-    <aside class="fixed left-0 top-0 h-full p-4 space-y-2 h-screen w-64 hidden lg:flex flex-col border-r-0 bg-slate-100/85 dark:bg-slate-900/85 backdrop-blur-md z-40">
-        <div class="mb-8 px-4 py-2">
-            <h1 class="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Terminal 01</h1>
-            <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-none">Receiving Dock A</p>
+    <aside class="fixed left-0 top-0 h-full p-2 space-y-3 h-screen w-[84px] hidden lg:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-100/85 dark:bg-slate-900/85 backdrop-blur-md z-40">
+        <div class="mb-4 text-center">
+            <div class="w-11 h-11 mx-auto rounded-lg bg-green-600 text-white flex items-center justify-center shadow-md shadow-green-600/20">
+                <span class="material-symbols-outlined text-xl">warehouse</span>
+            </div>
+            <h1 class="text-[10px] font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none mt-1.5">Terminal 01</h1>
+            <p class="text-[8px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-0.5">Dock A</p>
         </div>
-        <nav class="flex-1 space-y-1">
-            <a class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('dashboard') ? 'bg-white dark:bg-slate-800 text-green-600 dark:text-green-400 border-l-4 border-green-600 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200' }} rounded-xl transition-all duration-200" href="{{ route('dashboard') }}">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span class="font-inter text-sm font-bold">Dashboard</span>
+        <nav class="flex-1 space-y-3">
+            <a class="relative group/nav flex items-center justify-center w-12 h-12 mx-auto {{ request()->routeIs('dashboard') ? 'bg-slate-200/90 dark:bg-slate-800/90 text-green-700 dark:text-green-300 border-l-[5px] border-green-600 shadow-sm font-bold' : 'text-slate-650 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60' }} rounded-xl transition-all duration-200" href="{{ route('dashboard') }}">
+                <span class="material-symbols-outlined text-2xl">dashboard</span>
+                <span class="absolute left-16 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 translate-x-[-10px] group-hover/nav:opacity-100 group-hover/nav:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                    Dashboard
+                </span>
             </a>
             @if(auth()->user()->role !== 'auditor')
-            <a class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('scan') ? 'bg-white dark:bg-slate-800 text-green-600 dark:text-green-400 border-l-4 border-green-600 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200' }} rounded-xl transition-all duration-200" href="{{ route('scan') }}">
-                <span class="material-symbols-outlined">barcode_scanner</span>
-                <span class="font-inter text-sm font-bold">Scan</span>
+            <a class="relative group/nav flex items-center justify-center w-12 h-12 mx-auto {{ request()->routeIs('scan') ? 'bg-slate-200/90 dark:bg-slate-800/90 text-green-700 dark:text-green-300 border-l-[5px] border-green-600 shadow-sm font-bold' : 'text-slate-650 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60' }} rounded-xl transition-all duration-200" href="{{ route('scan') }}">
+                <span class="material-symbols-outlined text-2xl">barcode_scanner</span>
+                <span class="absolute left-16 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 translate-x-[-10px] group-hover/nav:opacity-100 group-hover/nav:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                    Scan
+                </span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('stock-in') ? 'bg-white dark:bg-slate-800 text-green-600 dark:text-green-400 border-l-4 border-green-600 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200' }} rounded-xl transition-all duration-200" href="{{ route('stock-in') }}">
-                <span class="material-symbols-outlined">input</span>
-                <span class="font-inter text-sm font-bold">Stock In</span>
+            <a class="relative group/nav flex items-center justify-center w-12 h-12 mx-auto {{ request()->routeIs('stock-in') ? 'bg-slate-200/90 dark:bg-slate-800/90 text-green-700 dark:text-green-300 border-l-[5px] border-green-600 shadow-sm font-bold' : 'text-slate-650 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60' }} rounded-xl transition-all duration-200" href="{{ route('stock-in') }}">
+                <span class="material-symbols-outlined text-2xl">input</span>
+                <span class="absolute left-16 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 translate-x-[-10px] group-hover/nav:opacity-100 group-hover/nav:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                    Stock In
+                </span>
             </a>
             @endif
-            <a class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('items') ? 'bg-white dark:bg-slate-800 text-green-600 dark:text-green-400 border-l-4 border-green-600 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200' }} rounded-xl transition-all duration-200" href="{{ route('items') }}">
-                <span class="material-symbols-outlined">inventory_2</span>
-                <span class="font-inter text-sm font-bold">Items</span>
+            <a class="relative group/nav flex items-center justify-center w-12 h-12 mx-auto {{ request()->routeIs('items') ? 'bg-slate-200/90 dark:bg-slate-800/90 text-green-700 dark:text-green-300 border-l-[5px] border-green-600 shadow-sm font-bold' : 'text-slate-650 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60' }} rounded-xl transition-all duration-200" href="{{ route('items') }}">
+                <span class="material-symbols-outlined text-2xl">inventory_2</span>
+                <span class="absolute left-16 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 translate-x-[-10px] group-hover/nav:opacity-100 group-hover/nav:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                    Items Catalog
+                </span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('barcode.printing') ? 'bg-white dark:bg-slate-800 text-green-600 dark:text-green-400 border-l-4 border-green-600 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200' }} rounded-xl transition-all duration-200" href="{{ route('barcode.printing') }}">
-                <span class="material-symbols-outlined">print</span>
-                <span class="font-inter text-sm font-bold">Print</span>
+            <a class="relative group/nav flex items-center justify-center w-12 h-12 mx-auto {{ request()->routeIs('barcode.printing') ? 'bg-slate-200/90 dark:bg-slate-800/90 text-green-700 dark:text-green-300 border-l-[5px] border-green-600 shadow-sm font-bold' : 'text-slate-650 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60' }} rounded-xl transition-all duration-200" href="{{ route('barcode.printing') }}">
+                <span class="material-symbols-outlined text-2xl">print</span>
+                <span class="absolute left-16 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 translate-x-[-10px] group-hover/nav:opacity-100 group-hover/nav:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                    Print Labels
+                </span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('opname') ? 'bg-white dark:bg-slate-800 text-green-600 dark:text-green-400 border-l-4 border-green-600 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200' }} rounded-xl transition-all duration-200" href="{{ route('opname') }}">
-                <span class="material-symbols-outlined">inventory</span>
-                <span class="font-inter text-sm font-bold">Opname</span>
+            <a class="relative group/nav flex items-center justify-center w-12 h-12 mx-auto {{ request()->routeIs('reports.*') ? 'bg-slate-200/90 dark:bg-slate-800/90 text-green-700 dark:text-green-300 border-l-[5px] border-green-600 shadow-sm font-bold' : 'text-slate-650 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60' }} rounded-xl transition-all duration-200" href="{{ route('reports.stock-out') }}">
+                <span class="material-symbols-outlined text-2xl">description</span>
+                <span class="absolute left-16 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 translate-x-[-10px] group-hover/nav:opacity-100 group-hover/nav:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                    Reports Hub
+                </span>
             </a>
         </nav>
-        <div class="pt-4 border-t border-slate-200">
-            <p class="px-4 mb-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Settings</p>
-            <div class="space-y-1">
-                <a class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('settings.departments') ? 'bg-white dark:bg-slate-800 text-green-600 border-l-4 border-green-600 shadow-sm' : 'text-slate-600 hover:bg-slate-200' }} rounded-xl transition-all duration-200" href="{{ route('settings.departments') }}">
-                    <span class="material-symbols-outlined">corporate_fare</span>
-                    <span class="font-inter text-sm font-bold">Departments</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('settings.users') ? 'bg-white dark:bg-slate-800 text-green-600 border-l-4 border-green-600 shadow-sm' : 'text-slate-600 hover:bg-slate-200' }} rounded-xl transition-all duration-200" href="{{ route('settings.users') }}">
-                    <span class="material-symbols-outlined">person</span>
-                    <span class="font-inter text-sm font-bold">Users / PIC</span>
-                </a>
-            </div>
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <a class="relative group/nav flex items-center justify-center w-12 h-12 mx-auto {{ request()->routeIs('settings.departments') ? 'bg-slate-200/90 dark:bg-slate-800/90 text-green-755 border-l-[5px] border-green-600 shadow-sm font-bold' : 'text-slate-650 hover:bg-slate-200/60' }} rounded-xl transition-all duration-200" href="{{ route('settings.departments') }}">
+                <span class="material-symbols-outlined text-2xl">corporate_fare</span>
+                <span class="absolute left-16 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 translate-x-[-10px] group-hover/nav:opacity-100 group-hover/nav:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                    Departments
+                </span>
+            </a>
+            <a class="relative group/nav flex items-center justify-center w-12 h-12 mx-auto {{ request()->routeIs('settings.users') ? 'bg-slate-200/90 dark:bg-slate-800/90 text-green-755 border-l-[5px] border-green-600 shadow-sm font-bold' : 'text-slate-650 hover:bg-slate-200/60' }} rounded-xl transition-all duration-200" href="{{ route('settings.users') }}">
+                <span class="material-symbols-outlined text-2xl">person</span>
+                <span class="absolute left-16 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded shadow-lg opacity-0 translate-x-[-10px] group-hover/nav:opacity-100 group-hover/nav:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                    Users / PIC
+                </span>
+            </a>
         </div>
     </aside>
 
     <!-- Main Content Canvas -->
-    <main class="flex-1 lg:ml-64 flex flex-col min-h-screen">
+    <main class="flex-1 lg:ml-[84px] flex flex-col min-h-screen">
         <!-- TopAppBar -->
-        <header class="fixed top-0 right-0 left-0 lg:left-64 z-30 bg-slate-50/85 backdrop-blur-md border-b border-slate-200">
-            <div class="flex items-center justify-between px-6 h-16 w-full">
+        <header class="fixed top-0 right-0 left-0 lg:left-[84px] z-30 bg-slate-50/85 backdrop-blur-md border-b border-slate-200">
+            <div class="flex items-center justify-between px-6 h-11 w-full">
                 <div class="flex items-center gap-4 flex-1">
+                    @if(auth()->check())
+                    @php
+                        $whCode = session('active_warehouse_code', 'SPAREPART');
+                        $colorClass = match($whCode) {
+                            'SPAREPART' => 'teal',
+                            'RAW_MATERIAL' => 'amber',
+                            'CONSUMABLE' => 'purple',
+                            'FINISHED_GOODS' => 'blue',
+                            default => 'teal'
+                        };
+                    @endphp
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-md shadow-sm text-xs font-black uppercase tracking-wider transition-all duration-200 border-l-4 border-l-{{ $colorClass }}-500 hover:bg-slate-50 active:scale-95">
+                            <span class="material-symbols-outlined text-sm text-{{ $colorClass }}-600" style="font-variation-settings: 'FILL' 1;">warehouse</span>
+                            <span class="text-slate-800 dark:text-slate-200">{{ session('active_warehouse_name', 'Spareparts Warehouse') }}</span>
+                            <span class="material-symbols-outlined text-xs text-slate-400">arrow_drop_down</span>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" class="absolute left-0 mt-1 w-64 bg-white border border-slate-200 rounded-md shadow-lg z-50 overflow-hidden" style="display: none;">
+                            <div class="bg-slate-50 px-3 py-1.5 border-b border-slate-100">
+                                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Switch Warehouse Context</span>
+                            </div>
+                            @foreach(auth()->user()->warehouses as $wh)
+                                @php
+                                    $whColor = match($wh->code) {
+                                        'SPAREPART' => 'teal',
+                                        'RAW_MATERIAL' => 'amber',
+                                        'CONSUMABLE' => 'purple',
+                                        'FINISHED_GOODS' => 'blue',
+                                        default => 'teal'
+                                    };
+                                    $isActive = $wh->id == session('active_warehouse_id');
+                                @endphp
+                                <form action="{{ route('warehouse.switch', $wh->id) }}" method="POST" class="w-full">
+                                    @csrf
+                                    <button type="submit" 
+                                        @if($isActive) disabled @else onclick="return confirm('⚠️ Are you sure? Switching warehouses will automatically clear your active scanner cart and Inbound receipt drafts to prevent stock contamination.')" @endif
+                                        class="w-full flex items-center justify-between px-4 py-2 hover:bg-slate-50 text-left transition-colors border-l-4 {{ $isActive ? 'border-l-'.$whColor.'-500 bg-slate-50/50 font-black text-'.$whColor.'-700' : 'border-l-transparent text-slate-700' }}">
+                                        <div class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-sm {{ $isActive ? 'text-'.$whColor.'-600' : 'text-slate-400' }}" style="font-variation-settings: 'FILL' 1;">warehouse</span>
+                                            <span class="text-xs uppercase tracking-wider">{{ $wh->name }}</span>
+                                        </div>
+                                        @if($isActive)
+                                        <span class="material-symbols-outlined text-xs text-{{ $whColor }}-600 font-bold">check_circle</span>
+                                        @endif
+                                    </button>
+                                </form>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                 </div>
                 <div class="flex items-center gap-4">
                     <button class="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors active:scale-95">

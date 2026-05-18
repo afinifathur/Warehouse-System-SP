@@ -1,12 +1,12 @@
-<div class="p-6 pt-24 min-h-screen bg-slate-100/50">
+<div class="p-md pt-14 min-h-screen bg-slate-100/30">
     <!-- Header Area -->
-    <div class="flex items-center justify-between gap-4 mb-4 bg-white p-4 rounded-2xl border border-slate-200 industrial-shadow">
+    <div class="flex items-center justify-between gap-sm mb-md bg-white dark:bg-slate-900 p-md rounded-md border border-slate-200 dark:border-slate-800 shadow-sm">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-green-400">
-                <span class="material-symbols-outlined">table_chart</span>
+            <div class="w-9 h-9 bg-slate-900 rounded-md flex items-center justify-center text-green-400">
+                <span class="material-symbols-outlined text-xl">table_chart</span>
             </div>
             <div>
-                <h2 class="text-lg font-black text-slate-900 tracking-tighter uppercase leading-none">Bulk Import Terminal</h2>
+                <h2 class="text-sm font-black text-slate-900 tracking-tighter uppercase leading-none">Bulk Import Terminal</h2>
                 <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ready for Data Stream</p>
             </div>
         </div>
@@ -14,7 +14,7 @@
         <!-- Compact Status -->
         <div class="flex-1 flex justify-center px-8" x-data="{ processing: @entangle('isProcessing') }">
             <template x-if="processing">
-                <div class="flex items-center gap-3 px-4 py-2 bg-green-50 rounded-full border border-green-100">
+                <div class="flex items-center gap-3 px-3 py-1.5 bg-green-50 rounded-sm border border-green-100">
                     <div class="w-3 h-3 border-2 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
                     <span class="text-[9px] font-black text-green-600 uppercase tracking-widest">Processing Batch...</span>
                 </div>
@@ -30,7 +30,7 @@
                             <span class="w-2 h-2 rounded-full bg-red-500"></span>
                             <span class="text-[9px] font-black text-slate-600 uppercase tracking-widest cursor-help underline decoration-dotted">Rejected: <span class="text-red-600" x-text="$wire.importResults.rejected"></span></span>
                             <!-- Tooltip for errors -->
-                            <div class="absolute top-full left-0 mt-2 w-64 bg-white border border-red-100 rounded-xl shadow-xl p-3 z-50 hidden group-hover:block transition-all italic">
+                            <div class="absolute top-full left-0 mt-2 w-64 bg-white border border-red-100 rounded-md shadow-xl p-3 z-50 hidden group-hover:block transition-all italic">
                                 <p class="text-[8px] font-black text-red-600 uppercase mb-2">Error Log:</p>
                                 <div class="max-h-32 overflow-y-auto space-y-1">
                                     <template x-for="detail in $wire.importResults.details">
@@ -47,12 +47,12 @@
         </div>
         
         <div class="flex items-center gap-2">
-            <a href="{{ route('items') }}" class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">
+            <a href="{{ route('items') }}" class="h-11 px-4 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">
                 Cancel
             </a>
             <button 
                 id="saveButton"
-                class="px-5 py-2 text-[10px] font-black text-white green-action-gradient rounded-xl shadow-lg shadow-green-200 active:scale-95 transition-all disabled:opacity-50"
+                class="h-11 px-5 text-[10px] font-black text-white green-action-gradient rounded-md shadow-md shadow-green-200 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center"
                 onclick="processImport()"
             >
                 EXECUTE STREAM
@@ -61,7 +61,7 @@
     </div>
 
     <!-- Spreadsheet Area -->
-    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden industrial-shadow">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden shadow-sm">
         <div id="hot-container" class="w-full"></div>
     </div>
 

@@ -34,6 +34,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/opname', \App\Livewire\Opname\OpnamePage::class)->name('opname');
     Route::get('/stock-in', [StockController::class, 'index'])->name('stock-in');
     Route::get('/barcode-printing', \App\Livewire\Barcode\PrintPage::class)->name('barcode.printing');
+    Route::post('/warehouse/switch/{id}', [\App\Http\Controllers\WarehouseSwitchController::class, 'switchWarehouse'])->name('warehouse.switch');
+
+    // Reports Hub & Legacy ERP Transfer Bridge
+    Route::get('/reports/stock-out', \App\Livewire\Reports\StockOutReport::class)->name('reports.stock-out');
+    Route::get('/reports/stock-in', \App\Livewire\Reports\StockInReport::class)->name('reports.stock-in');
+    Route::get('/reports/stock-out/csv', [\App\Http\Controllers\ReportController::class, 'exportStockOutCsv'])->name('reports.stock-out.csv');
+    Route::get('/reports/stock-in/csv', [\App\Http\Controllers\ReportController::class, 'exportStockInCsv'])->name('reports.stock-in.csv');
+    Route::get('/reports/stock-out/print', [\App\Http\Controllers\ReportController::class, 'printStockOut'])->name('reports.stock-out.print');
+    Route::get('/reports/stock-in/print', [\App\Http\Controllers\ReportController::class, 'printStockIn'])->name('reports.stock-in.print');
 
     // Settings / Master Data
     Route::get('/settings/departments', \App\Livewire\Settings\DepartmentPage::class)->name('settings.departments');

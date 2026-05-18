@@ -1,54 +1,58 @@
-<div class="pt-24 px-4 pb-6 lg:px-6 min-h-screen bg-slate-50/30">
+<div class="pt-[52px] px-md pb-md min-h-screen bg-slate-50/30" x-data="scannerEngine()" @click="recoverFocus()">
+
+    <!-- Industrial Overlay Confirmation Flashes -->
+    <div x-show="flashSuccess" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 pointer-events-none border-[12px] border-emerald-500/40 z-[9999]" style="display: none;"></div>
+    <div x-show="flashError" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 pointer-events-none border-[12px] border-red-500/40 z-[9999]" style="display: none;"></div>
 
     @if($isSubmitted)
     {{-- ══════════════════════════════════════════
          SUCCESS / PRINT SCREEN
     ══════════════════════════════════════════════ --}}
-    <div class="max-w-2xl mx-auto mt-10 text-center space-y-8 animate-in fade-in zoom-in duration-500">
-        <div class="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/10">
-            <span class="material-symbols-outlined text-6xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+    <div class="max-w-2xl mx-auto mt-6 text-center space-y-md animate-in fade-in zoom-in duration-500">
+        <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/20 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-md">
+            <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
         </div>
         
-        <div class="space-y-2">
-            <h1 class="text-4xl font-black text-slate-900 tracking-tight">Transaction Confirmed!</h1>
-            <p class="text-slate-500 font-bold uppercase tracking-widest text-sm">Code: <span class="text-primary">{{ $lastTransactionCode }}</span></p>
+        <div class="space-y-1">
+            <h1 class="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Transaction Confirmed!</h1>
+            <p class="text-slate-550 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px]">Code: <span class="text-primary">{{ $lastTransactionCode }}</span></p>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <button onclick="window.print()" class="bg-primary text-white py-5 rounded-2xl font-black text-xl shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
-                <span class="material-symbols-outlined text-3xl">print</span>
+        <div class="grid grid-cols-2 gap-sm">
+            <button onclick="window.print()" class="h-11 bg-primary hover:bg-primary-fixed-variant text-white rounded-md font-black text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-lg">print</span>
                 PRINT RECEIPT
             </button>
-            <button wire:click="resetSession" class="bg-white text-slate-700 border-2 border-slate-100 py-5 rounded-2xl font-black text-xl shadow-lg hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-3">
-                <span class="material-symbols-outlined text-3xl">add_box</span>
+            <button wire:click="resetSession" class="h-11 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-md font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-lg">add_box</span>
                 NEW SESSION
             </button>
         </div>
 
         {{-- Mini Receipt Preview for screen --}}
-        <div class="bg-white border-2 border-slate-100 rounded-2xl p-8 text-left shadow-sm">
-            <div class="flex justify-between items-start mb-6 border-b-2 border-slate-50 pb-4">
-                <h2 class="font-black uppercase tracking-tighter text-lg">Transaction Summary</h2>
-                <span class="text-xs font-mono text-slate-400">{{ now()->format('d M Y H:i') }}</span>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-md text-left shadow-sm">
+            <div class="flex justify-between items-start mb-md border-b border-slate-100 dark:border-slate-800 pb-sm">
+                <h2 class="font-black uppercase tracking-tighter text-sm text-slate-800 dark:text-slate-200">Transaction Summary</h2>
+                <span class="text-[10px] font-mono text-slate-400">{{ now()->format('d M Y H:i') }}</span>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-sm">
                 @php
                     $submittedTrx = \App\Models\StockTransaction::with(['items', 'department', 'user'])->find($lastTransactionId);
                 @endphp
                 @if($submittedTrx)
-                    <div class="flex justify-between text-sm">
+                     <div class="flex justify-between text-xs">
                         <span class="text-slate-400 font-bold uppercase tracking-widest">Department</span>
-                        <span class="font-black text-slate-900">{{ $submittedTrx->department->name }}</span>
+                        <span class="font-black text-slate-900 dark:text-slate-250">{{ $submittedTrx->department->name }}</span>
                     </div>
-                    <div class="flex justify-between text-sm">
+                    <div class="flex justify-between text-xs">
                         <span class="text-slate-400 font-bold uppercase tracking-widest">PIC</span>
-                        <span class="font-black text-slate-900">{{ $submittedTrx->user->name }}</span>
+                        <span class="font-black text-slate-900 dark:text-slate-250">{{ $submittedTrx->user->name }}</span>
                     </div>
-                    <div class="border-t-2 border-dashed border-slate-100 pt-4 mt-4 space-y-2">
+                    <div class="border-t border-dashed border-slate-200 dark:border-slate-800 pt-sm mt-sm space-y-sm">
                         @foreach($submittedTrx->items as $item)
                         <div class="flex justify-between text-xs">
-                            <span class="font-bold text-slate-600 truncate flex-1 pr-4">{{ $item->item_name_snapshot }}</span>
-                            <span class="font-black text-slate-900 shrink-0">x{{ $item->qty }}</span>
+                            <span class="font-bold text-slate-650 dark:text-slate-350 truncate flex-1 pr-4">{{ $item->item_name_snapshot }}</span>
+                            <span class="font-black text-slate-900 dark:text-slate-200 shrink-0">x{{ $item->qty }}</span>
                         </div>
                         @endforeach
                     </div>
@@ -61,15 +65,88 @@
          MAIN INTERFACE (SCAN & CART)
     ══════════════════════════════════════════════ --}}
     
+    <!-- 🎛️ SCANNER ENGINE status control widget -->
+    <div class="max-w-7xl mx-auto mb-xs flex flex-wrap items-center justify-between gap-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md py-1.5 px-md text-xs shadow-sm">
+        <div class="flex items-center gap-sm">
+            <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Scanner Engine:</span>
+            <button type="button" @click="toggleEngine()" class="flex items-center gap-1.5 px-2 py-0.5 rounded font-black text-[9px] uppercase transition-all border outline-none"
+                    :class="engineMode === 'enhanced' ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 border-emerald-200' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'">
+                <span class="w-1.5 h-1.5 rounded-full inline-block" :class="engineMode === 'enhanced' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'"></span>
+                <span x-text="engineMode === 'enhanced' ? '🟢 ENHANCED MODE' : '⚪ LEGACY MODE'"></span>
+            </button>
+        </div>
+        
+        <div class="flex items-center gap-md">
+            <div class="flex items-center gap-sm">
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Volume:</span>
+                <div class="flex bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md p-0.5">
+                    <button type="button" @click="setVolume('mute')" class="px-2 py-0.5 rounded text-[8px] font-black uppercase transition-all" :class="volume === 'mute' ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold shadow-sm' : 'text-slate-400' ">MUTE</button>
+                    <button type="button" @click="setVolume('low')" class="px-2 py-0.5 rounded text-[8px] font-black uppercase transition-all" :class="volume === 'low' ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold shadow-sm' : 'text-slate-400' ">LOW</button>
+                    <button type="button" @click="setVolume('normal')" class="px-2 py-0.5 rounded text-[8px] font-black uppercase transition-all" :class="volume === 'normal' ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold shadow-sm' : 'text-slate-400' ">NORMAL</button>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-sm border-l border-slate-200 dark:border-slate-800 pl-md">
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Focus:</span>
+                <span class="flex items-center gap-1 font-bold text-[9px]" :class="isFocused ? 'text-emerald-600' : 'text-amber-500'">
+                    <span class="w-1.5 h-1.5 rounded-full" :class="isFocused ? 'bg-emerald-500' : 'bg-amber-400'"></span>
+                    <span x-text="isFocused ? 'READY' : 'LOST'"></span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚨 MULTI-TAB GOVERNANCE & LOCK WARNING -->
+    <div x-show="governanceStatus !== 'ACTIVE'" x-transition class="max-w-7xl mx-auto mb-sm animate-in slide-in-from-top-4 duration-300" style="display: none;">
+        <div class="border rounded-md p-md shadow-sm" 
+             :class="{
+                'bg-slate-100 border-slate-300 text-slate-700': governanceStatus === 'MONITOR',
+                'bg-amber-55 border-amber-300 text-amber-800': governanceStatus === 'UNSTABLE',
+                'bg-red-55 border-red-300 text-red-800': governanceStatus === 'TAKEOVER_ELIGIBLE'
+             }">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-sm">
+                <div class="flex items-center gap-sm">
+                    <span class="material-symbols-outlined text-2xl animate-pulse"
+                          :class="{
+                             'text-slate-500': governanceStatus === 'MONITOR',
+                             'text-amber-600': governanceStatus === 'UNSTABLE',
+                             'text-red-600': governanceStatus === 'TAKEOVER_ELIGIBLE'
+                          }">
+                        security
+                    </span>
+                    <div>
+                        <h4 class="text-xs font-black uppercase tracking-wider">
+                            <span x-show="governanceStatus === 'MONITOR'">🔒 Read-Only Monitor Mode Active</span>
+                            <span x-show="governanceStatus === 'UNSTABLE'">⚠️ Terminal Connection Unstable</span>
+                            <span x-show="governanceStatus === 'TAKEOVER_ELIGIBLE'">🚨 Terminal Hijack Protection</span>
+                        </h4>
+                        <p class="text-[10px] opacity-90 mt-0.5">
+                            <span x-show="governanceStatus === 'MONITOR'">Another tab (<span class="font-mono" x-text="activeOwnerTabId"></span>) is currently operating this terminal. Inputs on this tab are temporarily locked to prevent out-of-order scans.</span>
+                            <span x-show="governanceStatus === 'UNSTABLE'">No active heartbeat detected from the owning tab for 5 seconds. Standing by for auto-recovery...</span>
+                            <span x-show="governanceStatus === 'TAKEOVER_ELIGIBLE'">The primary operator tab has been silent for 10+ seconds. You can now forcefully claim control of this terminal session.</span>
+                        </p>
+                    </div>
+                </div>
+                <div x-show="governanceStatus === 'TAKEOVER_ELIGIBLE'">
+                    <button type="button" @click="forceTakeover()" class="px-4 h-9 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all active:scale-95">
+                        Claim Active Control
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- ── 1. SESSION HEADER (DEPT / PIC / REF) ── --}}
-    <section class="max-w-7xl mx-auto mb-8 animate-in slide-in-from-top-4 duration-500">
-        <div class="bg-white border-2 border-slate-100 rounded-3xl p-6 lg:p-8 industrial-shadow">
-            <div class="flex flex-col lg:flex-row gap-6 items-end">
-                <div class="flex-1 w-full space-y-3">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 italic">01. Destination Dept</label>
-                    <div class="relative group">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary group-focus-within:scale-110 transition-transform">corporate_fare</span>
-                        <select wire:model.live="deptId" class="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-primary focus:ring-0 font-bold text-slate-700 transition-all cursor-pointer shadow-sm">
+    <section class="max-w-7xl mx-auto mb-sm animate-in slide-in-from-top-4 duration-500">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md py-1.5 px-md shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-md items-center">
+                
+                <!-- Destination Dept -->
+                <div class="flex items-center gap-2 w-full">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0 italic">01. Dept:</span>
+                    <div class="relative flex-1">
+                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary text-[16px]">corporate_fare</span>
+                        <select wire:model.live="deptId" class="w-full h-9 pl-8 pr-2 bg-slate-50 border border-slate-200 dark:border-slate-850 rounded-md focus:ring-1 focus:ring-primary/20 focus:border-primary font-bold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-sm text-xs py-1">
                             <option value="">Select Department...</option>
                             @foreach($departments as $dept)
                                 <option value="{{ $dept->id }}">{{ $dept->name }} ({{ $dept->code }})</option>
@@ -78,11 +155,12 @@
                     </div>
                 </div>
 
-                <div class="flex-1 w-full space-y-3">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 italic">02. Recipient (PIC)</label>
-                    <div class="relative group">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary group-focus-within:scale-110 transition-transform">person</span>
-                        <select wire:model.live="picId" class="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-primary focus:ring-0 font-bold text-slate-700 transition-all cursor-pointer shadow-sm" {{ empty($availablePics) ? 'disabled' : '' }}>
+                <!-- Recipient PIC -->
+                <div class="flex items-center gap-2 w-full">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0 italic">02. PIC:</span>
+                    <div class="relative flex-1">
+                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary text-[16px]">person</span>
+                        <select wire:model.live="picId" class="w-full h-9 pl-8 pr-2 bg-slate-50 border border-slate-200 dark:border-slate-850 rounded-md focus:ring-1 focus:ring-primary/20 focus:border-primary font-bold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-sm text-xs py-1" {{ empty($availablePics) ? 'disabled' : '' }}>
                             <option value="">Select PIC...</option>
                             @foreach($availablePics as $pic)
                                 <option value="{{ $pic->id }}">{{ $pic->name }}</option>
@@ -91,101 +169,96 @@
                     </div>
                 </div>
 
-                <div class="flex-1 w-full space-y-3">
-                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 italic">03. Machine / Work Order</label>
-                    <div class="relative group">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary group-focus-within:scale-110 transition-transform">manufacturing</span>
-                        <input wire:model="reference" placeholder="e.g. MCH-012, WO-492" class="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-primary focus:ring-0 font-bold text-slate-700 transition-all shadow-sm" type="text"/>
+                <!-- Machine / Work Order Reference -->
+                <div class="flex items-center gap-2 w-full">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0 italic">03. Ref:</span>
+                    <div class="relative flex-1">
+                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary text-[16px]">manufacturing</span>
+                        <input wire:model="reference" placeholder="e.g. MCH-012, WO-492" class="w-full h-9 pl-8 pr-2 bg-slate-50 border border-slate-200 dark:border-slate-850 rounded-md focus:ring-1 focus:ring-primary/20 focus:border-primary font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm text-xs py-1" type="text"/>
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
 
-    <div class="grid grid-cols-12 gap-8 max-w-[1600px] mx-auto">
+    <div class="grid grid-cols-12 gap-md max-w-[1600px] mx-auto">
         {{-- ── 2. LEFT PANEL: SCAN AREA (8 Cols on Desktop) ── --}}
-        <section class="col-span-12 lg:col-span-7 xl:col-span-8 space-y-8 min-w-0">
+        <section class="col-span-12 lg:col-span-7 xl:col-span-8 space-y-md min-w-0">
 
             @if($message)
-            <div class="{{ $messageType === 'success' ? 'bg-emerald-50 border-emerald-500' : 'bg-red-50 border-red-500' }} border-l-4 p-5 rounded-2xl flex items-center gap-4 shadow-sm animate-in fade-in slide-in-from-left-2 transition-all">
-                <span class="material-symbols-outlined {{ $messageType === 'success' ? 'text-emerald-500' : 'text-red-500' }} text-3xl" style="font-variation-settings: 'FILL' 1;">
+            <div class="{{ $messageType === 'success' ? 'bg-emerald-55/10 border-emerald-500' : 'bg-red-55/10 border-red-500' }} border-l-4 p-sm rounded-md flex items-center gap-sm shadow-sm animate-in fade-in slide-in-from-left-2 transition-all">
+                <span class="material-symbols-outlined {{ $messageType === 'success' ? 'text-emerald-500' : 'text-red-500' }} text-lg" style="font-variation-settings: 'FILL' 1;">
                     {{ $messageType === 'success' ? 'check_circle' : 'error' }}
                 </span>
-                <p class="text-base font-bold text-slate-800">{{ $message }}</p>
+                <p class="text-xs font-bold text-slate-850 dark:text-slate-100">{{ $message }}</p>
             </div>
             @endif
 
-            <div class="bg-primary p-1.5 rounded-[2rem] shadow-2xl shadow-primary/20">
-                <div class="bg-white p-6 rounded-[calc(2rem-6px)]">
-                    <div class="flex items-center gap-6">
-                        <div class="flex-1 relative">
-                            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-primary text-4xl material-symbols-outlined">barcode_scanner</span>
-                            <input
-                                wire:model="barcode"
-                                wire:keydown.enter="handleScan"
-                                id="barcode-input"
-                                autofocus
-                                class="w-full pl-20 pr-8 py-7 bg-slate-50 rounded-3xl border-2 border-transparent focus:border-primary focus:ring-4 focus:ring-primary/5 text-3xl font-black placeholder:text-slate-200 transition-all font-mono"
-                                placeholder="SCAN ITEM BARCODE"
-                                type="text"/>
-                        </div>
-                        <div class="flex items-center gap-3 shrink-0">
-                            <button wire:click="handleScan" class="bg-primary text-white w-20 h-20 rounded-3xl shadow-xl flex items-center justify-center hover:brightness-110 active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-5xl">keyboard_return</span>
-                            </button>
-                            <button onclick="startScanner()" type="button" class="bg-slate-100 text-slate-500 w-20 h-20 rounded-3xl flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all outline-none">
-                                <span class="material-symbols-outlined text-4xl font-black">photo_camera</span>
-                            </button>
-                        </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-sm shadow-sm ready-to-scan-glow">
+                <div class="flex items-center gap-sm">
+                    <div class="flex-1 relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600 text-lg material-symbols-outlined">barcode_scanner</span>
+                        <input
+                            x-model="barcodeText"
+                            @keydown.enter.prevent="handleScanInput()"
+                            id="barcode-input"
+                            autofocus
+                            class="w-full h-11 pl-10 pr-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-md focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-sm font-black placeholder:text-slate-400 transition-all font-mono text-on-surface animate-pulse"
+                            placeholder="READY TO SCAN PHYSICAL BARCODE..."
+                            type="text"/>
+                        <div x-show="invalidFormatMessage" x-transition.opacity.duration.150ms class="absolute left-0 right-0 top-[48px] bg-red-500 text-white rounded-md text-[10px] font-black uppercase tracking-widest text-center py-1 z-20 shadow-md" x-text="invalidFormatMessage" style="display: none;"></div>
+                    </div>
+                    <div class="flex items-center gap-sm shrink-0">
+                        <button wire:click="submitScan" class="bg-emerald-600 hover:bg-emerald-700 text-white w-11 h-11 rounded-md shadow-md flex items-center justify-center active:scale-95 transition-all">
+                            <span class="material-symbols-outlined text-lg">keyboard_return</span>
+                        </button>
+                        <button onclick="startScanner()" type="button" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 w-11 h-11 rounded-md flex items-center justify-center active:scale-95 transition-all outline-none">
+                            <span class="material-symbols-outlined text-lg font-black">photo_camera</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
             {{-- Camera Scanner Overlay --}}
-            <div id="scanner-container" class="hidden mt-4 bg-black rounded-[2rem] overflow-hidden relative border-8 border-white shadow-2xl" wire:ignore>
+            <div id="scanner-container" class="hidden mt-2 bg-black rounded-md overflow-hidden relative border border-slate-200 dark:border-slate-800 shadow-lg" wire:ignore>
                 <div id="reader" style="width: 100%;"></div>
-                <button type="button" onclick="stopScanner()" class="absolute top-6 right-6 bg-red-600 text-white px-8 py-4 text-sm font-black rounded-2xl shadow-xl z-50 hover:bg-red-700 flex items-center gap-3 transition-all">
-                    <span class="material-symbols-outlined">close</span> CANCEL SCAN
+                <button type="button" onclick="stopScanner()" class="absolute top-3 right-3 bg-red-600 text-white px-4 h-11 text-xs font-black rounded-md shadow-lg z-50 hover:bg-red-700 flex items-center gap-2 transition-all">
+                    <span class="material-symbols-outlined text-sm">close</span> CANCEL SCAN
                 </button>
             </div>
 
             @if($currentItem)
-            <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 success-flash animate-in zoom-in-95 duration-300">
-                <div class="flex flex-col sm:flex-row">
-                    <div class="sm:w-56 shrink-0 bg-slate-100 relative group overflow-hidden">
-                        <img alt="Product" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="{{ $currentItem->images->where('is_primary', true)->first() ? asset('storage/' . $currentItem->images->where('is_primary', true)->first()->path) : asset('images/placeholders/item.svg') }}"/>
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                    </div>
-                    <div class="flex-1 p-8 flex flex-col justify-between gap-6">
-                        <div class="flex justify-between items-start gap-4">
-                            <div>
-                                <h2 class="text-3xl font-black tracking-tight text-slate-900 leading-none">{{ $currentItem->item->name }}</h2>
-                                <p class="text-xs font-black text-primary uppercase mt-3 tracking-widest bg-primary/5 inline-block px-3 py-1 rounded-full">{{ $currentItem->sku }}</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Local Stock</span>
-                                <span class="text-3xl font-black text-slate-900 leading-none">{{ \App\Models\Bin::where('item_variant_id', $currentItem->id)->sum('current_qty') }} <span class="text-xs text-slate-400 uppercase">{{ $currentItem->unit }}</span></span>
-                            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md shadow-sm overflow-hidden success-flash animate-in zoom-in-95 duration-300 flex flex-col sm:flex-row">
+                <div class="sm:w-20 sm:h-20 shrink-0 bg-slate-100 dark:bg-slate-800 relative group overflow-hidden border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800 flex items-center justify-center p-1">
+                    <img alt="Product" class="w-full h-full object-cover rounded-md" src="{{ $currentItem->images->where('is_primary', true)->first() ? asset('storage/' . $currentItem->images->where('is_primary', true)->first()->path) : asset('images/placeholders/item.svg') }}"/>
+                </div>
+                <div class="flex-1 p-2 flex flex-col justify-between gap-sm">
+                    <div class="flex justify-between items-start gap-sm">
+                        <div class="min-w-0 flex-1">
+                            <h2 class="text-xs font-black tracking-tight text-slate-900 dark:text-slate-100 leading-tight truncate">{{ $currentItem->item->name }}</h2>
+                            <p class="text-[9px] font-mono-scannable text-primary uppercase mt-0.5 tracking-wider">{{ $currentItem->sku }}</p>
                         </div>
+                        <div class="text-right shrink-0">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Stock Bin</span>
+                            <span class="text-xs font-mono-scannable text-slate-900 dark:text-slate-100 leading-none">{{ \App\Models\Bin::where('item_variant_id', $currentItem->id)->sum('current_qty') }} <span class="text-[9px] text-slate-400">{{ $currentItem->unit }}</span></span>
+                        </div>
+                    </div>
 
-                        <div class="flex items-center gap-6">
-                            <div class="flex-1 space-y-2">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Batch Quantity</label>
-                                <div class="flex items-center justify-between bg-slate-50 border-2 border-slate-100 rounded-2xl p-2">
-                                    <button wire:click="$set('qty', {{ $qty > 1 ? $qty - 1 : 1 }})" class="w-14 h-14 bg-white text-primary rounded-xl shadow-sm hover:translate-y-[-2px] active:translate-y-0 transition-all">
-                                        <span class="material-symbols-outlined text-3xl font-black">remove</span>
-                                    </button>
-                                    <input wire:model="qty" class="w-24 text-center bg-transparent border-none focus:ring-0 text-5xl font-black text-slate-900" type="number"/>
-                                    <button wire:click="$set('qty', {{ (int)$qty + 1 }})" class="w-14 h-14 bg-white text-primary rounded-xl shadow-sm hover:translate-y-[-2px] active:translate-y-0 transition-all">
-                                        <span class="material-symbols-outlined text-3xl font-black">add</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <button wire:click="addToCart" class="shrink-0 h-24 px-10 bg-primary text-white rounded-3xl font-black text-xl flex items-center justify-center gap-3 shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 active:translate-y-0 transition-all">
-                                <span class="material-symbols-outlined text-3xl">add_shopping_cart</span>
-                                COMMIT
+                    <div class="flex items-center justify-between gap-2 mt-1">
+                        <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-md p-0.5 shrink-0">
+                            <button wire:click="$set('qty', {{ $qty > 1 ? $qty - 1 : 1 }})" class="w-8 h-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 text-primary rounded-md shadow-sm hover:translate-y-[-1px] active:translate-y-0 transition-all flex items-center justify-center font-bold text-sm">
+                                -
+                            </button>
+                            <input wire:model="qty" class="w-12 text-center bg-transparent border-none focus:ring-0 text-xs font-black text-slate-900 dark:text-slate-100" type="number"/>
+                            <button wire:click="$set('qty', {{ (int)$qty + 1 }})" class="w-8 h-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 text-primary rounded-md shadow-sm hover:translate-y-[-1px] active:translate-y-0 transition-all flex items-center justify-center font-bold text-sm">
+                                +
                             </button>
                         </div>
+                        <button wire:click="addToCart" class="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-black text-[10px] uppercase tracking-widest shadow-md flex items-center justify-center gap-2 transition-all">
+                            <span class="material-symbols-outlined text-sm">add_shopping_cart</span>
+                            COMMIT BATCH
+                        </button>
                     </div>
                 </div>
             </div>
@@ -193,47 +266,83 @@
         </section>
 
         {{-- ── 3. RIGHT PANEL: CART BATCH (4 Cols on Desktop) ── --}}
-        <aside class="col-span-12 lg:col-span-5 xl:col-span-4 flex flex-col bg-white border-2 border-slate-100 rounded-[2rem] overflow-hidden shadow-sm sticky top-28" style="max-height: calc(100vh - 120px);">
-            <div class="p-6 border-b-2 border-slate-50 flex items-center justify-between bg-slate-50">
-                <div>
-                    <h3 class="font-black text-xl uppercase tracking-tighter text-slate-900">Active Batch</h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Pending Movement</p>
+        <aside class="col-span-12 lg:col-span-5 xl:col-span-4 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden shadow-sm sticky top-[60px] relative" style="max-height: calc(100vh - 76px);">
+            
+            <!-- ⚡ LAST SCANNED MOMENTUM PANEL (Alpine Overlay) -->
+            <div x-show="showMomentum" 
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="absolute inset-0 bg-slate-900 text-white z-50 flex flex-col items-center justify-center p-md text-center"
+                 style="display: none;">
+                <div class="w-16 h-16 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center p-1 mb-sm shadow-md">
+                    <img :src="momentumData.photo" alt="Item Image" class="w-full h-full object-cover rounded-md" />
                 </div>
-                <span class="bg-primary text-white font-black text-[10px] px-4 py-2 rounded-full tracking-widest">{{ count($cart) }} ROWS</span>
+                <div class="text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 justify-center">
+                    <span class="material-symbols-outlined text-sm">check_circle</span> ADDED TO BATCH
+                </div>
+                <h4 class="text-xs font-black mt-1 leading-tight text-white px-sm" x-text="momentumData.name"></h4>
+                <p class="text-[9px] font-mono mt-0.5 text-slate-400" x-text="'SKU: ' + momentumData.sku"></p>
+                
+                <div class="mt-md grid grid-cols-3 gap-sm w-full border-t border-slate-800 pt-md text-center px-sm">
+                    <div>
+                        <div class="text-[8px] font-black uppercase tracking-widest text-slate-500">Qty Added</div>
+                        <div class="text-xs font-black text-emerald-400" x-text="'+' + momentumData.qty"></div>
+                    </div>
+                    <div>
+                        <div class="text-[8px] font-black uppercase tracking-widest text-slate-500">Remaining</div>
+                        <div class="text-xs font-black text-white" x-text="momentumData.remaining + ' ' + momentumData.unit"></div>
+                    </div>
+                    <div>
+                        <div class="text-[8px] font-black uppercase tracking-widest text-slate-500">Primary Bin</div>
+                        <div class="text-xs font-black text-emerald-450" x-text="momentumData.bin"></div>
+                    </div>
+                </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-5 space-y-4 custom-scroll">
+            <div class="px-md py-sm border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 shrink-0">
+                <div>
+                    <h3 class="font-black text-xs uppercase tracking-tighter text-slate-850 dark:text-white">Active Batch</h3>
+                    <p class="text-[9px] text-slate-400 font-black uppercase tracking-widest">Pending Movement</p>
+                </div>
+                <span class="bg-primary text-white font-black text-[9px] px-2 py-0.5 rounded tracking-widest uppercase">{{ count($cart) }} Rows</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-sm space-y-1.5 custom-scroll">
                 @forelse($cart as $index => $item)
-                <div class="bg-slate-50 group p-4 rounded-2xl border-2 border-transparent hover:border-primary/20 transition-all relative">
-                    <button wire:click="removeFromCart({{ $index }})" class="absolute -top-2 -right-2 bg-white border-2 border-slate-100 text-slate-300 hover:text-red-500 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all scale-0 group-hover:scale-100">
-                        <span class="material-symbols-outlined text-lg">close</span>
-                    </button>
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="font-black text-sm text-slate-800 leading-tight flex-1 pr-1 truncate">{{ $item['name'] }}</span>
-                        <span class="text-sm font-black text-primary shrink-0">x{{ $item['qty'] }}</span>
+                <div class="bg-slate-50 dark:bg-slate-800/40 group p-sm rounded-md border border-slate-200 dark:border-slate-800/60 hover:border-emerald-600/20 transition-all flex items-center justify-between gap-sm relative">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-black text-xs text-slate-850 dark:text-slate-200 leading-tight truncate">{{ $item['name'] }}</div>
+                        <div class="text-[9px] font-mono-scannable text-slate-400 uppercase mt-0.5 tracking-wider">{{ $item['barcode'] }}</div>
                     </div>
-                    <div class="flex justify-between items-end">
-                        <span class="text-[10px] font-mono font-bold text-slate-400 uppercase">{{ $item['barcode'] }}</span>
-                        <span class="text-xs font-black text-slate-400">Total: @money($item['qty'] * $item['price'])</span>
+                    <div class="text-right shrink-0 flex items-center gap-2">
+                        <div class="text-right">
+                            <div class="text-xs font-black text-emerald-600">x{{ $item['qty'] }}</div>
+                            <div class="text-[8px] font-mono text-slate-400">SKU: {{ $item['erp_code'] }}</div>
+                        </div>
+                        <button wire:click="removeFromCart({{ $index }})" class="material-symbols-outlined text-slate-350 hover:text-red-500 transition-colors text-[18px] outline-none">close</button>
                     </div>
                 </div>
                 @empty
-                <div class="h-full flex flex-col items-center justify-center py-20 opacity-30">
-                    <span class="material-symbols-outlined text-7xl mb-4">shopping_basket</span>
-                    <p class="text-sm font-black uppercase tracking-widest">Cart Empty</p>
+                <div class="flex-1 flex flex-col items-center justify-center py-6 opacity-30">
+                    <span class="material-symbols-outlined text-2xl mb-1 text-slate-400">shopping_basket</span>
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Cart Empty</p>
                 </div>
                 @endforelse
             </div>
 
-            <div class="p-6 bg-slate-50 border-t-2 border-slate-100 space-y-4">
+            <div class="p-sm bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 space-y-sm shrink-0">
                 <div class="flex justify-between items-center px-1">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Batch Value</span>
-                    <span class="text-2xl font-black text-slate-900">@money(collect($cart)->sum(fn($i) => $i['qty'] * $i['price']))</span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Qty</span>
+                    <span class="text-md font-black text-slate-900 dark:text-white">{{ collect($cart)->sum('qty') }} Units</span>
                 </div>
                 <button wire:click="submit"
-                        class="w-full bg-emerald-500 text-white py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/30 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30"
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11 rounded-md font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md hover:brightness-105 active:scale-95 transition-all disabled:opacity-35 disabled:pointer-events-none"
                         @if(empty($cart)) disabled @endif>
-                    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">publish</span>
                     SUBMIT TRANSACTION
                 </button>
             </div>
@@ -302,92 +411,423 @@
 </style>
 
 <script>
-    (function() {
-        var html5QrCode;
+    // 📊 Operational Client-Side Scanner Telemetry
+    window.__WMS_SCANNER_DEBUG = {
+        avgScanTimeMs: 0,
+        scanCount: 0,
+        totalScanTimeMs: 0,
+        parserFailures: 0,
+        duplicateBlocks: 0,
+        invalidFormatRejects: 0,
+        autofocusRecoveries: 0,
+        logScan(duration) {
+            this.scanCount++;
+            this.totalScanTimeMs += duration;
+            this.avgScanTimeMs = Math.round(this.totalScanTimeMs / this.scanCount);
+            console.log("[WMS SCANNER TELEMETRY]", this);
+        }
+    };
 
-        window.startScanner = function() {
-            var container = document.getElementById('scanner-container');
-            if (container) container.classList.remove('hidden');
-            
-            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-            
-            var config = { 
-                fps: 20, 
-                qrbox: { width: 280, height: 160 }, 
-                aspectRatio: 1.0,
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true 
-                },
-                videoConstraints: {
-                    facingMode: "environment",
-                    width: { min: 640, ideal: 1280 },
-                    height: { min: 480, ideal: 720 }
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('scannerEngine', () => ({
+            engineMode: localStorage.getItem('wms_scanner_engine') || 'enhanced',
+            volume: localStorage.getItem('wms_scanner_volume') || 'normal',
+            barcodeText: '',
+            isFocused: true,
+            flashSuccess: false,
+            flashError: false,
+            invalidFormatMessage: '',
+            showMomentum: false,
+            momentumData: {
+                name: '',
+                sku: '',
+                qty: 0,
+                photo: '',
+                bin: '',
+                remaining: 0,
+                unit: ''
+            },
+            focusCooldown: false,
+            lastInputTime: 0,
+            lastScan: {
+                barcode: '',
+                qty: 0,
+                timestamp: 0
+            },
+            audioCtx: null,
+            momentumTimer: null,
+
+            tabId: 'TAB_' + Math.random().toString(36).substring(2, 9).toUpperCase(),
+            governanceStatus: 'ACTIVE',
+            activeOwnerTabId: '',
+            heartbeatInterval: null,
+            watchdogInterval: null,
+            terminalId: localStorage.getItem('wms_terminal_id') || 'SPAREPART-DESK-A',
+
+            claimOwnership() {
+                const activeKey = 'wms_active_out';
+                const timeKey = 'wms_time_out';
+                const ownerNameKey = 'wms_owner_name_out';
+                const now = Date.now();
+
+                const activeTab = localStorage.getItem(activeKey);
+                const lastHeartbeat = parseInt(localStorage.getItem(timeKey) || '0', 10);
+
+                if (activeTab && activeTab !== this.tabId && (now - lastHeartbeat) < 10000) {
+                    // Another tab is active and healthy (under 10s takeover threshold)
+                    this.switchToMonitorMode();
+                } else {
+                    // Claim ownership
+                    localStorage.setItem(activeKey, this.tabId);
+                    localStorage.setItem(timeKey, now.toString());
+                    localStorage.setItem(ownerNameKey, '{{ auth()->user()->name }}');
+                    this.switchToActiveMode();
                 }
-            };
+            },
 
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                function(decodedText) {
-                    window.playSuccessBeep();
-                    window.stopScanner();
-                    @this.set('barcode', decodedText);
-                    @this.call('handleScan');
-                },
-                function() {}
-            ).catch(function(err) {
-                console.error("Camera startup error", err);
-                alert("Could not start camera. Please ensure permissions are granted.");
-                window.stopScanner();
-            });
-        };
+            sendHeartbeat() {
+                const activeKey = 'wms_active_out';
+                const timeKey = 'wms_time_out';
 
-        window.stopScanner = function() {
-            var container = document.getElementById('scanner-container');
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(function() {
-                    if (container) container.classList.add('hidden');
-                }).catch(function(err) {
-                    console.error("Error stopping scanner", err);
-                    if (container) container.classList.add('hidden');
+                if (localStorage.getItem(activeKey) === this.tabId) {
+                    localStorage.setItem(timeKey, Date.now().toString());
+                }
+            },
+
+            evaluateTabHealth() {
+                const activeKey = 'wms_active_out';
+                const timeKey = 'wms_time_out';
+                const ownerNameKey = 'wms_owner_name_out';
+                const now = Date.now();
+
+                const activeTab = localStorage.getItem(activeKey);
+                const lastHeartbeat = parseInt(localStorage.getItem(timeKey) || '0', 10);
+                const elapsed = now - lastHeartbeat;
+
+                this.activeOwnerTabId = activeTab || 'NONE';
+
+                if (activeTab !== this.tabId) {
+                    if (elapsed < 5000) {
+                        this.governanceStatus = 'MONITOR';
+                    } else if (elapsed >= 5000 && elapsed < 10000) {
+                        this.governanceStatus = 'UNSTABLE';
+                    } else {
+                        this.governanceStatus = 'TAKEOVER_ELIGIBLE';
+                    }
+                } else {
+                    this.governanceStatus = 'ACTIVE';
+                }
+            },
+
+            forceTakeover() {
+                const activeKey = 'wms_active_out';
+                const timeKey = 'wms_time_out';
+                const ownerNameKey = 'wms_owner_name_out';
+                const prevOwner = localStorage.getItem(ownerNameKey) || 'Unknown Operator';
+
+                localStorage.setItem(activeKey, this.tabId);
+                localStorage.setItem(timeKey, Date.now().toString());
+                localStorage.setItem(ownerNameKey, '{{ auth()->user()->name }}');
+                
+                this.switchToActiveMode();
+
+                // Log takeover override to the database
+                @this.call('logTakeover', prevOwner, '{{ auth()->user()->name }}', this.terminalId);
+            },
+
+            switchToMonitorMode() {
+                this.governanceStatus = 'MONITOR';
+                const inputEl = document.getElementById('barcode-input');
+                if (inputEl) inputEl.disabled = true;
+            },
+
+            switchToActiveMode() {
+                this.governanceStatus = 'ACTIVE';
+                const inputEl = document.getElementById('barcode-input');
+                if (inputEl) {
+                    inputEl.disabled = false;
+                    this.forceFocus();
+                }
+            },
+
+            init() {
+                console.log("[WMS Scanner Engine] Bootstrapped in " + this.engineMode.toUpperCase() + " mode.");
+                
+                // Initialize Tab Governance heartbeats
+                this.claimOwnership();
+                this.heartbeatInterval = setInterval(() => { this.sendHeartbeat(); }, 2000);
+                this.watchdogInterval = setInterval(() => { this.evaluateTabHealth(); }, 2000);
+
+                // Listen for localStorage changes on active tab updates
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'wms_active_out' && e.newValue !== this.tabId) {
+                        this.switchToMonitorMode();
+                    }
                 });
-            } else {
-                if (container) container.classList.add('hidden');
+                
+                // Audio Bootstrap Listeners for iOS Safari
+                const unlockAudio = () => {
+                    this.bootstrapAudio();
+                    document.removeEventListener('click', unlockAudio);
+                    document.removeEventListener('touchstart', unlockAudio);
+                };
+                document.addEventListener('click', unlockAudio);
+                document.addEventListener('touchstart', unlockAudio);
+
+                // Focus Tracking
+                const inputEl = document.getElementById('barcode-input');
+                if (inputEl) {
+                    inputEl.addEventListener('focus', () => { this.isFocused = true; });
+                    inputEl.addEventListener('blur', () => { this.isFocused = false; });
+                }
+
+                // Livewire Event Integration
+                window.addEventListener('scan-success', (e) => {
+                    const data = e.detail[0] || e.detail;
+                    this.triggerSuccess(data);
+                });
+
+                window.addEventListener('scan-failed', (e) => {
+                    const data = e.detail[0] || e.detail;
+                    this.triggerError(data.message || 'Scan failed');
+                });
+
+                window.addEventListener('focus-barcode-input', () => {
+                    this.forceFocus();
+                });
+            },
+
+            toggleEngine() {
+                this.engineMode = this.engineMode === 'enhanced' ? 'legacy' : 'enhanced';
+                localStorage.setItem('wms_scanner_engine', this.engineMode);
+                this.playAudio('success');
+                if (typeof Notyf !== 'undefined') {
+                    const n = new Notyf();
+                    n.open({
+                        type: 'info',
+                        message: 'Scanner Engine switched to ' + this.engineMode.toUpperCase(),
+                        background: this.engineMode === 'enhanced' ? '#059669' : '#475569'
+                    });
+                }
+            },
+
+            setVolume(mode) {
+                this.volume = mode;
+                localStorage.setItem('wms_scanner_volume', mode);
+                this.playAudio('success');
+            },
+
+            bootstrapAudio() {
+                if (this.audioCtx) return;
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.audioCtx = new AudioCtx();
+                    }
+                } catch (e) {
+                    console.warn("Web Audio API not supported", e);
+                }
+            },
+
+            playAudio(type) {
+                if (this.volume === 'mute') return;
+                this.bootstrapAudio();
+                if (!this.audioCtx) return;
+
+                // Resume suspended AudioContext (Safari security constraint)
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+
+                const vol = this.volume === 'low' ? 0.02 : 0.08;
+
+                if (type === 'success') {
+                    // Soft, short 880Hz confirmation beep (50ms duration)
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, this.audioCtx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.05);
+                    osc.start();
+                    osc.stop(this.audioCtx.currentTime + 0.05);
+                } else if (type === 'error') {
+                    // Non-alarm double buzz (180Hz) under 200ms total
+                    const playBuzz = (delay) => {
+                        const osc = this.audioCtx.createOscillator();
+                        const gain = this.audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(this.audioCtx.destination);
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(180, this.audioCtx.currentTime + delay);
+                        gain.gain.setValueAtTime(vol * 1.5, this.audioCtx.currentTime + delay);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + delay + 0.06);
+                        osc.start(this.audioCtx.currentTime + delay);
+                        osc.stop(this.audioCtx.currentTime + delay + 0.06);
+                    };
+                    playBuzz(0);
+                    playBuzz(0.09); // Second pulse after 90ms
+                }
+            },
+
+            onInput() {
+                // Inter-character Inactivity Check: Reset buffer after 400ms
+                const now = Date.now();
+                if (this.lastInputTime && (now - this.lastInputTime) > 400) {
+                    this.barcodeText = '';
+                    window.__WMS_SCANNER_DEBUG.parserFailures++;
+                }
+                this.lastInputTime = now;
+            },
+
+            handleScanInput() {
+                const raw = this.barcodeText.trim();
+                if (!raw) return;
+
+                if (this.engineMode !== 'enhanced') {
+                    // Fallback to legacy wedge model
+                    @this.set('barcode', raw);
+                    @this.call('submitScan');
+                    this.barcodeText = '';
+                    return;
+                }
+
+                // Strict Regex Parser: Enforce BARCODE*QTY
+                let barcodeVal = raw;
+                let qtyVal = 1;
+
+                if (raw.includes('*')) {
+                    const match = raw.match(/^([a-zA-Z0-9_-]+)\*(\d+)$/);
+                    if (!match) {
+                        this.triggerInvalidFormat();
+                        return;
+                    }
+                    barcodeVal = match[1];
+                    qtyVal = parseInt(match[2], 10);
+                }
+
+                if (!barcodeVal || qtyVal <= 0 || isNaN(qtyVal)) {
+                    this.triggerInvalidFormat();
+                    return;
+                }
+
+                // Duplicate Guard Prevention (400ms window)
+                const now = Date.now();
+                if (barcodeVal === this.lastScan.barcode && 
+                    qtyVal === this.lastScan.qty && 
+                    (now - this.lastScan.timestamp) < 400) {
+                    
+                    window.__WMS_SCANNER_DEBUG.duplicateBlocks++;
+                    this.playAudio('error');
+                    this.barcodeText = '';
+                    return;
+                }
+
+                // Update duplicate cache
+                this.lastScan = {
+                    barcode: barcodeVal,
+                    qty: qtyVal,
+                    timestamp: now
+                };
+
+                this.barcodeText = ''; // Clear input immediately!
+
+                // Dispatch event asynchronously
+                const start = Date.now();
+                @this.dispatch('barcode-scanned', { barcode: barcodeVal, qty: qtyVal });
+                
+                window.__WMS_SCANNER_DEBUG.logScan(Date.now() - start);
+            },
+
+            triggerInvalidFormat() {
+                this.invalidFormatMessage = '❌ INVALID FORMAT - Use BARCODE*QTY (e.g. 89912345*10)';
+                window.__WMS_SCANNER_DEBUG.invalidFormatRejects++;
+                this.playAudio('error');
+                this.barcodeText = '';
+                
+                setTimeout(() => {
+                    this.invalidFormatMessage = '';
+                }, 2000);
+            },
+
+            triggerSuccess(data) {
+                this.playAudio('success');
+                
+                // Blinking Overlay Success Trigger
+                this.flashSuccess = true;
+                setTimeout(() => { this.flashSuccess = false; }, 150);
+
+                if (navigator.vibrate) navigator.vibrate(60);
+
+                // Populate Last Scanned Momentum Panel
+                this.momentumData = {
+                    name: data.name,
+                    sku: data.sku,
+                    qty: data.qty,
+                    photo: data.photo,
+                    bin: data.bin,
+                    remaining: data.remaining,
+                    unit: data.unit
+                };
+
+                this.showMomentum = true;
+
+                if (this.momentumTimer) clearTimeout(this.momentumTimer);
+                this.momentumTimer = setTimeout(() => {
+                    this.showMomentum = false;
+                }, 1500);
+
+                this.forceFocus();
+            },
+
+            triggerError(message) {
+                this.playAudio('error');
+
+                // Blinking Overlay Error Trigger
+                this.flashError = true;
+                setTimeout(() => { this.flashError = false; }, 150);
+
+                if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+
+                if (typeof Notyf !== 'undefined') {
+                    new Notyf().error(message);
+                }
+
+                this.forceFocus();
+            },
+
+            recoverFocus() {
+                // Focus Cooldown Protection to prevent browser blur loops
+                if (this.focusCooldown) return;
+
+                // Ensure focus is not inside any reference or dropdown metadata
+                const active = document.activeElement;
+                if (active && (
+                    active.tagName === 'SELECT' || 
+                    (active.tagName === 'INPUT' && active.id !== 'barcode-input') || 
+                    active.tagName === 'TEXTAREA'
+                )) {
+                    return; // Retain active session metadata selection
+                }
+
+                this.forceFocus();
+            },
+
+            forceFocus() {
+                const inputEl = document.getElementById('barcode-input');
+                if (inputEl) {
+                    this.focusCooldown = true;
+                    inputEl.focus();
+                    inputEl.select();
+                    
+                    // Activate Cooldown for 200ms
+                    setTimeout(() => {
+                        this.focusCooldown = false;
+                    }, 200);
+                }
             }
-        };
-
-        window.addEventListener('scan-completed', function(event) {
-            window.playSuccessBeep();
-            if (navigator.vibrate) navigator.vibrate(100);
-        });
-
-        window.addEventListener('focus-barcode-input', function(event) {
-            var input = document.getElementById('barcode-input');
-            if (input) { input.focus(); input.select(); }
-        });
-
-        window.playSuccessBeep = function() {
-            try {
-                var AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtx) return;
-                var audioCtx = new AudioCtx();
-                var oscillator = audioCtx.createOscillator();
-                var gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.1);
-            } catch(e) {}
-        };
-
-        document.addEventListener('keydown', function(e) {
-            if (document.activeElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-                var input = document.getElementById('barcode-input');
-                if (input && /^[a-zA-Z0-9]$/.test(e.key)) input.focus();
-            }
-        });
-    })();
+        }));
+    });
 </script>

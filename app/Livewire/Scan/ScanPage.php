@@ -23,8 +23,6 @@ class ScanPage extends Component
     public $picId = null;
     public $reference = '';
     
-    // Dropdown Data (Moved to render to optimize performance)
-    
     // Post-Submit State
     public $isSubmitted = false;
     public $lastTransactionId = null;
@@ -43,59 +41,128 @@ class ScanPage extends Component
 
     public function updatedBarcode()
     {
-        // Support lazy reactivity if user stops typing (Fallback)
         if (!empty(trim($this->barcode))) {
-            $this->handleScan();
+            $this->submitScan();
         }
     }
 
-    public function handleScan()
+    protected $listeners = ['barcode-scanned' => 'submitScan'];
+
+    public function logTakeover($previousOwner, $newOwner, $terminalId, $takeoverReason = 'Manual Operator Override')
+    {
+        \App\Models\WmsTerminalTakeoverLog::create([
+            'workflow' => 'stock_out',
+            'terminal_id' => $terminalId,
+            'previous_owner' => $previousOwner ?: 'UNKNOWN',
+            'new_owner' => $newOwner ?: auth()->user()->name,
+            'takeover_reason' => $takeoverReason,
+        ]);
+        
+        $this->dispatch('takeover-logged');
+    }
+
+    /**
+     * 📥 Unified Ingestion Engine Pipeline
+     * Canonical single entry point for all scan sources (wedged scanners, manual typing, and Alpine events).
+     */
+    public function submitScan($input = null)
     {
         $this->message = '';
-        
-        if (empty(trim($this->barcode))) {
+        $barcodeVal = '';
+        $qtyVal = 1;
+
+        // 1. Differentiate input source signatures
+        if (is_array($input)) {
+            // Case A: Alpine.js / Custom Scanner dispatch dictionary
+            $barcodeVal = $input['barcode'] ?? '';
+            $qtyVal = (int) ($input['qty'] ?? 1);
+        } elseif (is_string($input) || is_numeric($input)) {
+            // Case B: Direct method parameter call (typed manually or via camera)
+            $barcodeVal = (string) $input;
+        } else {
+            // Case C: Standard model fallback (lazy keyboard inputs / form returns)
+            $barcodeVal = (string) $this->barcode;
+        }
+
+        $barcodeVal = trim($barcodeVal);
+        if (empty($barcodeVal)) {
             $this->currentItem = null;
             return;
         }
 
-        // Find item barcode with eager loaded relationships for fast UI rendering
+        // 2. Sanitize (strip control characters)
+        $barcodeVal = trim(preg_replace('/[\x00-\x1F\x7F-\x9F]/u', '', $barcodeVal));
+
+        // 3. Parse shorthand formatting (e.g. BARCODE*QTY) if not parsed client-side
+        if (!is_array($input) && str_contains($barcodeVal, '*')) {
+            $match = [];
+            if (preg_match('/^([a-zA-Z0-9.\-_]+)\*(\d+)$/', $barcodeVal, $match)) {
+                $barcodeVal = $match[1];
+                $qtyVal = (int) $match[2];
+            } else {
+                $msg = 'Invalid shorthand format. Use BARCODE*QTY (e.g. 1000000017*5).';
+                $this->showMessage($msg, 'error');
+                $this->dispatch('scan-failed', ['message' => $msg]);
+                return;
+            }
+        }
+
+        if (empty($barcodeVal) || $qtyVal <= 0) {
+            $msg = 'Invalid barcode payload or quantity.';
+            $this->showMessage($msg, 'error');
+            $this->dispatch('scan-failed', ['message' => $msg]);
+            return;
+        }
+
+        $this->barcode = $barcodeVal;
+        $this->qty = $qtyVal;
+
+        // 4. Resolve variant
         $barcodeObj = \App\Models\ItemBarcode::with(['variant.item', 'variant.images'])
-            ->where('barcode', trim($this->barcode))
+            ->where('barcode', $this->barcode)
             ->first();
 
         if ($barcodeObj && $barcodeObj->variant && $barcodeObj->variant->item) {
             $this->currentItem = $barcodeObj->variant;
-            $this->qty = 1;
-
-            // Auto Flow: Call addToCart if qty = 1
-            if ($this->qty == 1) {
-                $this->addToCart();
+            
+            // 5. Stock availability validations
+            $existingQtyInCart = 0;
+            foreach ($this->cart as $item) {
+                if ($item['item_variant_id'] === $this->currentItem->id) {
+                    $existingQtyInCart = $item['qty'];
+                    break;
+                }
             }
+
+            $totalRequested = $qtyVal + $existingQtyInCart;
+            $totalStockAvailable = \App\Models\Bin::where('item_variant_id', $this->currentItem->id)->sum('current_qty');
+
+            if ($totalRequested > $totalStockAvailable) {
+                $this->currentItem = null;
+                $this->barcode = '';
+                $this->qty = 1;
+                $msg = "Request exceeds available stock. Only {$totalStockAvailable} in total inventory (Cart currently holds: {$existingQtyInCart}).";
+                $this->showMessage($msg, 'error');
+                $this->dispatch('scan-failed', ['message' => $msg]);
+                return;
+            }
+
+            // 6. Commit into active cart
+            $this->addToCartDirect($qtyVal);
         } else {
             $this->currentItem = null;
-            $this->showMessage("Barcode not recognized: {$this->barcode}. Ensure it is registered in Master Data.", 'error');
+            $this->barcode = '';
+            $this->qty = 1;
+            $msg = "Barcode not recognized: {$barcodeVal}. Ensure it is registered in Master Data.";
+            $this->showMessage($msg, 'error');
+            $this->dispatch('scan-failed', ['message' => $msg]);
         }
     }
 
-    public function addToCart()
+    private function addToCartDirect(int $requestedQty)
     {
-        $this->message = '';
-
-        if (!$this->currentItem) {
-            $this->showMessage('Please scan a valid item first.', 'error');
-            return;
-        }
-
-        $requestedQty = (int) $this->qty;
-
-        if ($requestedQty <= 0) {
-            $this->showMessage('Quantity must be greater than zero.', 'error');
-            return;
-        }
-
-        // Cart Aggregation: Check if item already exists in cart mapped by variant id
-        $existingQtyInCart = 0;
         $existingIndex = null;
+        $existingQtyInCart = 0;
 
         foreach ($this->cart as $index => $item) {
             if ($item['item_variant_id'] === $this->currentItem->id) {
@@ -107,19 +174,9 @@ class ScanPage extends Component
 
         $totalRequested = $requestedQty + $existingQtyInCart;
 
-        // Stock Validation: Calculate total available stock across all bins
-        $totalStockAvailable = \App\Models\Bin::where('item_variant_id', $this->currentItem->id)->sum('current_qty');
-
-        if ($totalRequested > $totalStockAvailable) {
-            $this->showMessage("Request exceeds available stock. Only {$totalStockAvailable} in total inventory (Cart currently holds: {$existingQtyInCart}).", 'error');
-            return;
-        }
-
         if ($existingIndex !== null) {
-            // Aggregate quantity
             $this->cart[$existingIndex]['qty'] = $totalRequested;
         } else {
-            // Push new array entity
             $this->cart[] = [
                 'item_variant_id' => $this->currentItem->id,
                 'name'            => $this->currentItem->item->name . ' - ' . $this->currentItem->sku,
@@ -131,29 +188,28 @@ class ScanPage extends Component
             ];
         }
 
-        // Save session state
         $this->persistCart();
 
-        // Reset inputs
         $this->lastAction = "+{$requestedQty} " . ($this->currentItem->item->name ?? 'Unknown Item');
+        
+        $primaryPhoto = $this->currentItem->images->where('is_primary', true)->first();
+        $photoUrl = $primaryPhoto ? asset('storage/' . $primaryPhoto->path) : asset('images/placeholders/item.svg');
+        $primaryBin = $this->currentItem->bins()->first()?->code ?? 'N/A';
+        $remainingStock = \App\Models\Bin::where('item_variant_id', $this->currentItem->id)->sum('current_qty') - $totalRequested;
+
+        $this->dispatch('scan-success', [
+            'name' => $this->currentItem->item->name,
+            'sku' => $this->currentItem->sku,
+            'qty' => $requestedQty,
+            'photo' => $photoUrl,
+            'bin' => $primaryBin,
+            'remaining' => max(0, $remainingStock),
+            'unit' => $this->currentItem->unit
+        ]);
+
         $this->barcode = '';
         $this->currentItem = null;
         $this->qty = 1;
-
-        $this->showMessage('Item added to cart.', 'success');
-        
-        // Dispatch feedback & focus events
-        $this->dispatch('scan-completed');
-        $this->dispatch('focus-barcode-input');
-    }
-
-    public function removeFromCart($index)
-    {
-        if (isset($this->cart[$index])) {
-            unset($this->cart[$index]);
-            $this->cart = array_values($this->cart); // Re-index securely
-            $this->persistCart();
-        }
     }
 
     private function persistCart()
@@ -187,7 +243,7 @@ class ScanPage extends Component
                     'type'          => 'OUT',
                     'status'        => 'CONFIRMED',
                     'department_id' => $this->deptId,
-                    'user_id'       => $picId = $this->picId,
+                    'user_id'       => $this->picId,
                     'reference'     => $this->reference,
                     'total_price'   => $totalTransactionPrice,
                 ]);

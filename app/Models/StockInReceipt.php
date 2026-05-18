@@ -5,50 +5,60 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class StockMovement extends Model
+class StockInReceipt extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'item_variant_id',
-        'bin_id',
+        'receipt_code',
+        'user_id',
         'supplier_id',
-        'type',
-        'qty',
-        'reference',
-        'created_by',
+        'purchase_order_ref',
+        'status',
+        'last_activity_at',
         'warehouse_id',
         'operator_id',
         'terminal_id',
         'terminal_session_id',
-        'linked_transaction_id',
+        'erp_transfer_status',
+        'transferred_by',
+        'transferred_at',
     ];
 
-    protected static function booted()
-    {
-        static::updating(function ($mov) {
-            throw new \Exception("Operational Audit Violation: Updates on stock_movements are immutable.");
-        });
+    protected $casts = [
+        'last_activity_at' => 'datetime',
+        'transferred_at' => 'datetime',
+    ];
 
-        static::deleting(function ($mov) {
-            throw new \Exception("Operational Audit Violation: Deleting movements is forbidden.");
-        });
+    public function transferredBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'transferred_by');
     }
 
-    public function itemVariant(): BelongsTo
+    /**
+     * Owner user relationship.
+     */
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(ItemVariant::class);
+        return $this->belongsTo(User::class);
     }
 
-    public function bin(): BelongsTo
-    {
-        return $this->belongsTo(Bin::class);
-    }
-
+    /**
+     * Supplier relationship.
+     */
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    /**
+     * Line items relationship.
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(StockInItem::class);
     }
 
     public function warehouse(): BelongsTo
@@ -59,11 +69,6 @@ class StockMovement extends Model
     public function operator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'operator_id');
-    }
-
-    public function linkedTransaction(): BelongsTo
-    {
-        return $this->belongsTo(StockMovement::class, 'linked_transaction_id');
     }
 
     public function scopeForActiveWarehouse($query)

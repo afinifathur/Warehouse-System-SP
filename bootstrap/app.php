@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            \App\Http\Middleware\WmsWarehouseContextMiddleware::class,
+        ]);
         // Trust all proxies to prevent protocol/port misinterpretation in Docker/Reverse Proxy setups
         $middleware->trustProxies(at: '*');
     })

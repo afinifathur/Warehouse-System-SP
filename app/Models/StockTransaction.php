@@ -17,7 +17,23 @@ class StockTransaction extends Model
         'user_id',
         'reference',
         'total_price',
+        'warehouse_id',
+        'operator_id',
+        'terminal_id',
+        'terminal_session_id',
+        'erp_transfer_status',
+        'transferred_by',
+        'transferred_at',
     ];
+
+    protected $casts = [
+        'transferred_at' => 'datetime',
+    ];
+
+    public function transferredBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'transferred_by');
+    }
 
     public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -32,6 +48,32 @@ class StockTransaction extends Model
     public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(StockTransactionItem::class);
+    }
+
+    public function warehouse(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
+    public function operator(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'operator_id');
+    }
+
+    public function scopeForActiveWarehouse($query)
+    {
+        $strict = env('WMS_GOVERNANCE_STRICT_MODE', true);
+        $activeWarehouseId = session()->get('active_warehouse_id');
+
+        if ($activeWarehouseId) {
+            return $query->where($this->getTable() . '.warehouse_id', $activeWarehouseId);
+        }
+
+        if ($strict) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query;
     }
 
     /**

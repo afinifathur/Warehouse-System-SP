@@ -1,225 +1,323 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="pt-24 px-4 pb-6 lg:px-8">
-    <!-- Bento-Style Hero Header -->
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8 max-w-7xl mx-auto">
-        <!-- Large Image Container -->
-        <div class="md:col-span-7 bg-surface-container-lowest rounded-3xl overflow-hidden shadow-sm relative group aspect-video md:aspect-auto h-[320px] md:h-[480px]">
+<!-- Lightbox & Compact View Wrapper -->
+<div x-data="lightboxStore()" 
+     @keydown.escape.window="close()" 
+     @keydown.arrow-left.window="prev()" 
+     @keydown.arrow-right.window="next()"
+     class="pt-24 px-4 pb-6 lg:px-8 bg-slate-50/30 min-h-screen">
+
+    <!-- Hero / Compact Operational Identity Card -->
+    <div class="max-w-7xl mx-auto mb-6 bg-surface-container-lowest border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col md:flex-row gap-5 items-start relative">
+        <!-- Compact Thumbnail -->
+        <div class="flex-shrink-0 relative group">
             @php
                 $primaryImage = $variant->images->where('is_primary', true)->first();
-                $imagePath = $primaryImage ? asset('storage/' . $primaryImage->path) : asset('images/placeholders/item.svg');
+                $imagePath = $primaryImage ? asset('storage/' . $primaryImage->path) : null;
+                $galleryImages = $variant->images->map(fn($img) => asset('storage/' . $img->path))->toArray();
             @endphp
-            <img class="w-full h-full object-cover" alt="{{ $variant->item->name }}" src="{{ $imagePath }}"/>
-            <div class="absolute bottom-4 right-4 bg-surface/90 backdrop-blur p-2 rounded-xl flex gap-2">
-                <button class="material-symbols-outlined text-primary hover:text-primary-fixed-dim transition-colors">zoom_in</button>
+            
+            @if($imagePath)
+                <div @click="openLightbox(0)" class="w-36 h-36 rounded-md overflow-hidden border border-slate-200 cursor-pointer shadow-sm relative group bg-slate-50">
+                    <img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="{{ $variant->item->name }}" src="{{ $imagePath }}"/>
+                    <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-md bg-black/40 p-1.5 rounded-full">zoom_in</span>
+                    </div>
+                </div>
+            @else
+                <div class="w-36 h-36 rounded-md border border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-350 select-none">
+                    <span class="material-symbols-outlined text-2xl mb-1">image_not_supported</span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">No Photo</span>
+                </div>
+            @endif
+        </div>
+
+        <!-- Identity Specifications Panel -->
+        <div class="flex-1 min-w-0 w-full">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
+                <div>
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded uppercase tracking-wider border border-slate-200">Asset Profile</span>
+                        @if($variant->brand)
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{{ $variant->brand }}</span>
+                        @endif
+                    </div>
+                    <h1 class="text-xl font-black tracking-tight text-slate-800 leading-tight">{{ $variant->item->name }}</h1>
+                </div>
+                
+                <!-- Compact Action Toolbar -->
+                <div class="flex items-center gap-1.5 flex-shrink-0 bg-slate-50 border border-slate-200 p-1 rounded-lg self-start">
+                    <a href="{{ route('items.edit', $variant->id) }}" class="flex items-center justify-center w-8 h-8 rounded text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors" title="Edit Item">
+                        <span class="material-symbols-outlined text-lg">edit</span>
+                    </a>
+                    <a href="{{ route('barcode.printing', ['searchString' => $variant->erp_code ?? $variant->sku]) }}" class="flex items-center justify-center w-8 h-8 rounded text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors" title="Print Barcode Label">
+                        <span class="material-symbols-outlined text-lg">print</span>
+                    </a>
+                    <a href="#history" class="flex items-center justify-center w-8 h-8 rounded text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors" title="View History">
+                        <span class="material-symbols-outlined text-lg">history</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Monospace Operational Matrix -->
+            @php
+                $currentStock = $variant->bins->sum('current_qty');
+                $mainBin = $variant->bins->first();
+            @endphp
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-1.5 gap-x-6 text-[11px] font-mono text-slate-600 border-t border-slate-100 pt-3">
+                <div class="flex items-center py-0.5 border-b border-dashed border-slate-100 sm:border-none">
+                    <span class="w-24 text-slate-400 font-bold uppercase tracking-wider flex-shrink-0">ERP CODE</span>
+                    <span class="font-black text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60 break-all select-all">{{ $variant->erp_code ?? '-' }}</span>
+                </div>
+                <div class="flex items-center py-0.5 border-b border-dashed border-slate-100 sm:border-none">
+                    <span class="w-24 text-slate-400 font-bold uppercase tracking-wider flex-shrink-0">SKU</span>
+                    <span class="font-black text-slate-800 select-all">{{ $variant->sku ?? '-' }}</span>
+                </div>
+                <div class="flex items-center py-0.5 border-b border-dashed border-slate-100 sm:border-none">
+                    <span class="w-24 text-slate-400 font-bold uppercase tracking-wider flex-shrink-0">UNIT</span>
+                    <span class="font-black text-slate-800">{{ $variant->unit ?? 'PCS' }}</span>
+                </div>
+                <div class="flex items-center py-0.5 border-b border-dashed border-slate-100 sm:border-none">
+                    <span class="w-24 text-slate-400 font-bold uppercase tracking-wider flex-shrink-0">LOCATION</span>
+                    <span class="font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100/60 uppercase">{{ $mainBin ? $mainBin->code : 'NOT STORED' }}</span>
+                </div>
+                <div class="flex items-center py-0.5">
+                    <span class="w-24 text-slate-400 font-bold uppercase tracking-wider flex-shrink-0">TOTAL QTY</span>
+                    <span class="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100/60">{{ number_format($currentStock) }} {{ $variant->unit ?? 'PCS' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compact Horizontal KPI Strip -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 max-w-7xl mx-auto">
+        <div class="bg-surface-container-lowest border border-slate-200 p-3 rounded-lg shadow-sm flex items-center gap-3">
+            <div class="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100 flex-shrink-0">
+                <span class="material-symbols-outlined text-emerald-650 text-md">inventory_2</span>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Current Stock</p>
+                <p class="text-sm font-black text-emerald-600 truncate">{{ number_format($currentStock) }} <span class="text-[10px] font-bold text-slate-400 font-mono">{{ $variant->unit ?? 'PCS' }}</span></p>
             </div>
         </div>
         
-        <!-- Item Identity Card -->
-        <div class="md:col-span-5 flex flex-col gap-6">
-            <div class="bg-surface-container-lowest p-8 rounded-3xl shadow-sm flex-1 flex flex-col justify-between border-t-4 border-primary">
-                <div>
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="px-3 py-1 bg-primary-fixed text-on-primary-fixed text-xs font-bold rounded-lg tracking-widest uppercase">Inventory</span>
-                        <div class="flex gap-2">
-                            <a href="{{ route('items.edit', $variant->id) }}" class="material-symbols-outlined text-outline hover:text-primary transition-colors cursor-pointer" title="Edit Item">edit</a>
-                        </div>
-                    </div>
-                    <h2 class="text-4xl font-extrabold tracking-tighter text-on-surface mb-2">{{ $variant->item->name }}</h2>
-                    <p class="text-secondary font-medium mb-6">{{ $variant->brand ?? 'No Brand' }}</p>
-                    
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                            <span class="text-sm text-outline font-bold uppercase tracking-wider">ERP CODE</span>
-                            <span class="text-sm font-black text-on-surface bg-slate-100 px-3 py-1 rounded-md">{{ $variant->erp_code ?? '-' }}</span>
-                        </div>
-                        <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                            <span class="text-sm text-outline font-bold uppercase tracking-wider">SKU</span>
-                            <span class="text-sm font-black text-on-surface">{{ $variant->sku ?? '-' }}</span>
-                        </div>
-                        <div class="flex items-center justify-between py-2">
-                            <span class="text-sm text-outline font-bold uppercase tracking-wider">UNIT</span>
-                            <span class="text-sm font-black text-on-surface">{{ $variant->unit ?? 'PCS' }}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Barcode Section -->
-                @php
-                    $primaryBarcode = $variant->primaryBarcode;
-                @endphp
-                <div class="mt-8 p-4 bg-white border-2 border-slate-200 rounded-xl flex flex-col items-center justify-center gap-2 shadow-inner">
-                    @if($primaryBarcode)
-                        <!-- Simplified barcode visual -->
-                        <div class="w-full h-16 bg-[repeating-linear-gradient(90deg,#000,#000_2px,transparent_2px,transparent_4px,#000_4px,#000_5px,transparent_5px,transparent_8px)] opacity-80"></div>
-                        <span class="font-mono text-lg tracking-[0.4em] font-black mt-2">{{ $primaryBarcode->barcode }}</span>
-                    @else
-                        <div class="text-slate-400 flex flex-col items-center">
-                            <span class="material-symbols-outlined text-4xl mb-2">barcode</span>
-                            <span class="text-sm font-bold">No Primary Barcode</span>
-                        </div>
-                    @endif
-                </div>
+        <div class="bg-surface-container-lowest border border-slate-200 p-3 rounded-lg shadow-sm flex items-center gap-3">
+            <div class="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100 flex-shrink-0">
+                <span class="material-symbols-outlined text-blue-650 text-md">location_on</span>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Main Location</p>
+                <p class="text-sm font-black text-slate-800 truncate font-mono uppercase">{{ $mainBin ? $mainBin->code : 'NOT STORED' }}</p>
+            </div>
+        </div>
+
+        <div class="bg-surface-container-lowest border border-slate-200 p-3 rounded-lg shadow-sm flex items-center gap-3">
+            <div class="w-9 h-9 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-100 flex-shrink-0">
+                <span class="material-symbols-outlined text-purple-650 text-md">verified</span>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Last Audit</p>
+                <p class="text-sm font-black text-purple-600 truncate font-mono">
+                    {{ $variant->last_opname_at ? \Carbon\Carbon::parse($variant->last_opname_at)->format('d M Y') : 'NEVER' }}
+                </p>
+            </div>
+        </div>
+        
+        <div class="bg-surface-container-lowest border border-slate-200 p-3 rounded-lg shadow-sm flex items-center gap-3">
+            <div class="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100 flex-shrink-0">
+                <span class="material-symbols-outlined text-amber-650 text-md">local_shipping</span>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Suppliers</p>
+                <p class="text-sm font-black text-amber-600 truncate font-mono">{{ $variant->suppliers->count() }} <span class="text-[10px] font-bold text-slate-400">VENDORS</span></p>
             </div>
         </div>
     </div>
-    
-    <div class="max-w-7xl mx-auto">
-        <!-- Metrics & Inventory Stats -->
-        @php
-            $currentStock = $variant->bins->sum('current_qty');
-            $mainBin = $variant->bins->first();
-        @endphp
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-surface-container-lowest p-6 rounded-3xl border-l-4 border-emerald-500 shadow-sm flex flex-col justify-center">
-                <p class="text-xs font-bold uppercase tracking-widest text-outline mb-2">Current Stock</p>
-                <div class="flex items-baseline gap-2">
-                    <span class="text-4xl font-black tracking-tight text-emerald-600">{{ number_format($currentStock) }}</span>
-                    <span class="text-sm font-bold text-secondary">{{ $variant->unit ?? 'Units' }}</span>
-                </div>
+
+    <!-- Main Content: Dense Two-Column Split Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+        <!-- Left Side: Detail Attributes & Registered Codes (Col Span 1) -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Description Card -->
+            <div class="bg-surface-container-lowest border border-slate-200 rounded-lg shadow-sm p-4">
+                <h3 class="text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2 text-slate-550 border-b border-slate-100 pb-2">
+                    <span class="material-symbols-outlined text-slate-400 text-md">description</span>
+                    Description
+                </h3>
+                <p class="text-slate-600 text-[11px] leading-relaxed whitespace-pre-line bg-slate-50 border border-slate-200/60 p-3 rounded-lg font-bold">
+                    {{ $variant->description ?? 'No description provided.' }}
+                </p>
             </div>
-            
-            <div class="bg-surface-container-lowest p-6 rounded-3xl border-l-4 border-blue-500 shadow-sm flex flex-col justify-center">
-                <p class="text-xs font-bold uppercase tracking-widest text-outline mb-2">Main Location</p>
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-blue-500 text-3xl">location_on</span>
-                    <span class="text-2xl font-black tracking-tight">{{ $mainBin ? $mainBin->code : 'Not Stored' }}</span>
+
+            <!-- Registered Barcodes (Scanner-First) -->
+            <div class="bg-surface-container-lowest border border-slate-200 rounded-lg shadow-sm p-4">
+                <h3 class="text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2 text-slate-550 border-b border-slate-100 pb-2">
+                    <span class="material-symbols-outlined text-slate-400 text-md">qr_code</span>
+                    Registered Barcodes
+                </h3>
+                <div class="grid grid-cols-1 gap-1.5 max-h-[160px] overflow-y-auto pr-1">
+                    @foreach($variant->barcodes as $barcode)
+                        <div class="flex justify-between items-center p-2 rounded {{ $barcode->is_primary ? 'bg-primary/5 border border-primary/20' : 'bg-slate-50 border border-slate-200/60' }}">
+                            <div class="font-mono text-[11px] font-black {{ $barcode->is_primary ? 'text-primary' : 'text-slate-700' }} tracking-wide select-all">
+                                {{ $barcode->barcode }}
+                            </div>
+                            <div class="flex gap-1.5 items-center">
+                                <span class="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 font-mono">{{ $barcode->type }}</span>
+                                @if($barcode->is_primary)
+                                    <span class="material-symbols-outlined text-primary text-xs" title="Primary Barcode" style="font-variation-settings: 'FILL' 1;">star</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
 
-            <div class="bg-surface-container-lowest p-6 rounded-3xl border-l-4 border-purple-500 shadow-sm flex flex-col justify-center">
-                <p class="text-xs font-bold uppercase tracking-widest text-outline mb-2">Last Audit/Opname</p>
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-purple-500 text-3xl">verified</span>
-                    <span class="text-xl font-black tracking-tight">
-                        {{ $variant->last_opname_at ? \Carbon\Carbon::parse($variant->last_opname_at)->format('d M Y') : 'Never Audited' }}
-                    </span>
-                </div>
-            </div>
-            
-            <div class="bg-surface-container-lowest p-6 rounded-3xl border-l-4 border-amber-500 shadow-sm flex flex-col justify-center">
-                <p class="text-xs font-bold uppercase tracking-widest text-outline mb-2">Suppliers Configured</p>
-                <div class="flex items-baseline gap-2">
-                    <span class="text-4xl font-black tracking-tight text-amber-600">{{ $variant->suppliers->count() }}</span>
-                    <span class="text-sm font-bold text-secondary">Vendors</span>
-                </div>
+            <!-- Compact Supplier Registry -->
+            <div class="bg-surface-container-lowest border border-slate-200 rounded-lg shadow-sm p-4">
+                <h3 class="text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2 text-slate-550 border-b border-slate-100 pb-2">
+                    <span class="material-symbols-outlined text-slate-400 text-md">local_shipping</span>
+                    Registered Suppliers
+                </h3>
+                
+                @if($variant->suppliers->isEmpty())
+                    <div class="text-slate-400 text-[10.5px] italic p-3 bg-slate-50 rounded-lg text-center border border-dashed border-slate-200 font-bold">
+                        No registered suppliers linked.
+                    </div>
+                @else
+                    <div class="grid grid-cols-1 gap-1.5 max-h-[180px] overflow-y-auto pr-1">
+                        @foreach($variant->suppliers as $supplier)
+                            <div class="p-2 border border-slate-200/60 rounded bg-slate-50 flex items-center justify-between gap-4">
+                                <div class="min-w-0">
+                                    <div class="font-black text-[11px] text-slate-700 truncate leading-tight">{{ $supplier->name }}</div>
+                                    <div class="text-[9px] text-slate-400 font-mono leading-none mt-0.5">VNDR ID: {{ $supplier->id }}</div>
+                                </div>
+                                <div class="flex items-center gap-2 flex-shrink-0 text-[10px]">
+                                    <span class="font-mono text-slate-500 bg-slate-200/60 px-1.5 py-0.5 rounded font-bold">SKU: <span class="font-black text-slate-700">{{ $supplier->pivot->supplier_sku ?? '-' }}</span></span>
+                                    <span class="font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100/60">Lead: {{ $supplier->pivot->lead_time_days ?? '?' }}d</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Left Column: Details & Suppliers -->
-            <div class="lg:col-span-1 space-y-8">
-                <!-- Description -->
-                <div class="bg-surface-container-lowest rounded-3xl shadow-sm p-6">
-                    <h3 class="text-lg font-black tracking-tight mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-slate-400">description</span>
-                        Description
+        <!-- Right Side: Gallery & Movements (Col Span 2) -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Compact Photo Gallery -->
+            <section class="bg-surface-container-lowest border border-slate-200 rounded-lg shadow-sm p-4">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                    <h3 class="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-slate-550">
+                        <span class="material-symbols-outlined text-slate-400 text-md">image</span>
+                        Photo Gallery
                     </h3>
-                    <p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
-                        {{ $variant->description ?? 'No description provided.' }}
-                    </p>
-                </div>
-
-                <!-- Suppliers List -->
-                <div class="bg-surface-container-lowest rounded-3xl shadow-sm p-6">
-                    <h3 class="text-lg font-black tracking-tight mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-slate-400">local_shipping</span>
-                        Registered Suppliers
-                    </h3>
-                    
-                    @if($variant->suppliers->isEmpty())
-                        <div class="text-slate-500 text-sm italic p-4 bg-slate-50 rounded-xl text-center border border-dashed border-slate-200">
-                            No suppliers linked to this item.
-                        </div>
-                    @else
-                        <div class="space-y-3">
-                            @foreach($variant->suppliers as $supplier)
-                                <div class="p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                                    <div class="font-bold text-slate-800 mb-1">{{ $supplier->name }}</div>
-                                    <div class="flex justify-between items-center text-xs text-slate-500">
-                                        <span>SKU: <span class="font-mono font-bold">{{ $supplier->pivot->supplier_sku ?? '-' }}</span></span>
-                                        <span>Lead: <span class="font-bold text-emerald-600">{{ $supplier->pivot->lead_time_days ?? '?' }}d</span></span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
+                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">{{ $variant->images->count() }} IMAGES</span>
                 </div>
                 
-                <!-- Secondary Barcodes -->
-                <div class="bg-surface-container-lowest rounded-3xl shadow-sm p-6">
-                    <h3 class="text-lg font-black tracking-tight mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-slate-400">qr_code</span>
-                        All Barcodes
-                    </h3>
-                    <div class="space-y-2">
-                        @foreach($variant->barcodes as $barcode)
-                            <div class="flex justify-between items-center p-2 rounded-lg {{ $barcode->is_primary ? 'bg-primary/10 border border-primary/20' : 'bg-slate-50 border border-slate-100' }}">
-                                <div class="font-mono text-sm font-bold {{ $barcode->is_primary ? 'text-primary' : 'text-slate-600' }}">
-                                    {{ $barcode->barcode }}
-                                </div>
-                                <div class="flex gap-2 items-center">
-                                    <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">{{ $barcode->type }}</span>
-                                    @if($barcode->is_primary)
-                                        <span class="material-symbols-outlined text-primary text-sm" title="Primary Barcode" style="font-variation-settings: 'FILL' 1;">star</span>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
+                <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    @foreach($variant->images as $index => $image)
+                        <div @click="openLightbox({{ $index }})" class="aspect-square bg-slate-50 border border-slate-200 rounded-md overflow-hidden cursor-pointer relative group">
+                            <img src="{{ asset('storage/' . $image->path) }}" alt="Item image" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                            @if($image->is_primary)
+                                <div class="absolute top-1 left-1 bg-primary text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm shadow-sm leading-none">Main</div>
+                            @endif
+                        </div>
+                    @endforeach
+                    
+                    <a href="{{ route('items.edit', $variant->id) }}#photos" class="aspect-square bg-slate-50 rounded-md border border-dashed border-slate-350 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all cursor-pointer select-none">
+                        <span class="material-symbols-outlined text-md mb-0.5">add_photo_alternate</span>
+                        <span class="text-[8px] font-black uppercase tracking-widest">Manage</span>
+                    </a>
                 </div>
-            </div>
+            </section>
 
-            <!-- Right Column: Images & History -->
-            <div class="lg:col-span-2 space-y-8">
-                <!-- Gallery Section -->
-                <section class="bg-surface-container-lowest rounded-3xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-black tracking-tight flex items-center gap-2">
-                            <span class="material-symbols-outlined text-slate-400">image</span>
-                            Photo Gallery
-                        </h3>
-                        <span class="text-xs font-bold uppercase tracking-widest text-outline bg-slate-100 px-3 py-1 rounded-full">{{ $variant->images->count() }} IMAGES</span>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        @foreach($variant->images as $image)
-                            <div class="aspect-square bg-slate-100 rounded-2xl overflow-hidden cursor-pointer relative group">
-                                <img src="{{ asset('storage/' . $image->path) }}" alt="Item image" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
-                                @if($image->is_primary)
-                                    <div class="absolute top-2 left-2 bg-primary text-white text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md shadow-sm">Main</div>
-                                @endif
-                            </div>
-                        @endforeach
-                        
-                        <a href="{{ route('items.edit', $variant->id) }}#photos" class="aspect-square bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all cursor-pointer">
-                            <span class="material-symbols-outlined text-3xl mb-1">add_photo_alternate</span>
-                            <span class="text-xs font-bold uppercase tracking-widest">Manage</span>
-                        </a>
-                    </div>
-                </section>
+            <!-- Dense Recent Movements Placeholder -->
+            <section class="bg-surface-container-lowest border border-slate-200 rounded-lg shadow-sm p-4" id="history">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                    <h3 class="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-slate-550">
+                        <span class="material-symbols-outlined text-slate-400 text-md">sync_alt</span>
+                        Recent Movements
+                    </h3>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full font-mono">LOG ENGINE</span>
+                </div>
+                
+                <div class="text-center py-4 border border-dashed border-slate-350 rounded-lg bg-slate-50/50">
+                    <span class="material-symbols-outlined text-2xl text-slate-350 mb-1">history_toggle_off</span>
+                    <h4 class="text-slate-700 text-[11px] font-black uppercase tracking-wider mb-0.5">Movement Log Integration Pending</h4>
+                    <p class="text-[9.5px] text-slate-400 max-w-[420px] mx-auto leading-relaxed font-bold">This item's in/out history will appear here once the Stock Movement module is fully linked.</p>
+                </div>
+            </section>
+        </div>
+    </div>
 
-                <!-- Movement History Mockup -->
-                <section class="bg-surface-container-lowest rounded-3xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-black tracking-tight flex items-center gap-2">
-                            <span class="material-symbols-outlined text-slate-400">sync_alt</span>
-                            Recent Movements
-                        </h3>
-                        <button class="text-primary font-bold text-sm flex items-center gap-1 hover:bg-primary/10 px-3 py-1 rounded-lg transition-colors">
-                            <span class="material-symbols-outlined text-sm">open_in_new</span> Full Report
-                        </button>
-                    </div>
-                    
-                    <div class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
-                        <span class="material-symbols-outlined text-5xl text-slate-300 mb-3">history_toggle_off</span>
-                        <h4 class="text-slate-600 font-bold mb-1">Movement Log Integration Pending</h4>
-                        <p class="text-sm text-slate-400">This item's in/out history will appear here once the Stock Movement module is fully linked.</p>
-                    </div>
-                </section>
-            </div>
+    <!-- Fullscreen Lightbox Modal (Alpine.js Built-in) -->
+    <div x-show="open" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95"
+         class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm p-4" 
+         style="display: none;">
+         
+        <!-- Close button (>44px click target) -->
+        <button @click="close()" class="absolute top-4 right-4 w-12 h-12 flex items-center justify-center text-white/70 hover:text-white bg-black/40 hover:bg-black/60 rounded-full transition-colors z-50">
+            <span class="material-symbols-outlined text-2xl">close</span>
+        </button>
+        
+        <!-- Left Arrow (>44px click target) -->
+        <button x-show="images.length > 1" @click="prev()" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-white/70 hover:text-white bg-black/40 hover:bg-black/60 rounded-full transition-colors z-50">
+            <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        </button>
+        
+        <!-- Right Arrow (>44px click target) -->
+        <button x-show="images.length > 1" @click="next()" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-white/70 hover:text-white bg-black/40 hover:bg-black/60 rounded-full transition-colors z-50">
+            <span class="material-symbols-outlined text-2xl">arrow_forward</span>
+        </button>
+        
+        <!-- Center Image Display -->
+        <div class="max-w-4xl max-h-[75vh] w-full flex items-center justify-center p-4">
+            <img :src="images[activeIndex]" class="max-w-full max-h-[75vh] object-contain rounded shadow-2xl border border-white/10 select-none">
+        </div>
+        
+        <!-- Bottom Thumbnail Strip -->
+        <div x-show="images.length > 1" class="flex gap-2 mt-4 max-w-full overflow-x-auto p-2 bg-black/30 rounded-xl">
+            <template x-for="(img, idx) in images" :key="idx">
+                <div @click="activeIndex = idx" 
+                     :class="{'border-primary scale-105': activeIndex === idx, 'border-white/20': activeIndex !== idx}"
+                     class="w-12 h-12 rounded border-2 overflow-hidden cursor-pointer transition-all flex-shrink-0 bg-slate-900">
+                    <img :src="img" class="w-full h-full object-cover">
+                </div>
+            </template>
         </div>
     </div>
 </div>
+
+<script>
+    function lightboxStore() {
+        return {
+            open: false,
+            activeIndex: 0,
+            images: {!! json_encode($galleryImages) !!},
+            openLightbox(index) {
+                if (this.images.length === 0) return;
+                this.activeIndex = index;
+                this.open = true;
+            },
+            close() {
+                this.open = false;
+            },
+            next() {
+                if (this.images.length === 0) return;
+                this.activeIndex = (this.activeIndex + 1) % this.images.length;
+            },
+            prev() {
+                if (this.images.length === 0) return;
+                this.activeIndex = (this.activeIndex - 1 + this.images.length) % this.images.length;
+            }
+        }
+    }
+</script>
 @endsection

@@ -1,5 +1,7 @@
 <?php
 
+namespace App\App\Livewire\Stock; // Fallback or direct namespace
+
 namespace App\Livewire\Stock;
 
 use App\Models\Bin;
@@ -7,6 +9,8 @@ use App\Models\Item;
 use App\Models\ItemBarcode;
 use App\Models\ItemVariant;
 use App\Models\Supplier;
+use App\Models\StockInReceipt;
+use App\Models\StockInItem;
 use App\Services\Barcode\BarcodeService;
 use App\Services\Inventory\InventoryService;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +23,7 @@ class StockInPage extends Component
     public $currentItem = null;
     public $qty = 1;
     public $bin_id = null;
+    public $binCode = ''; // For model bind
     public $supplier_id = null;
     public $last_used_bin_id = null;
     public $reference = '';
@@ -26,23 +31,149 @@ class StockInPage extends Component
     public $lastAction = '';
     public $autoAddMode = false;
 
+    // Single-Session & Persistence Properties
+    public $showResumeModal = false;
+    public $activeReceipt = null;
+
     // New Item Flow
     public $isNewItem = false;
     public $erpCode = '';
     public $itemName = '';
 
-    protected $listeners = ['focus-barcode-input' => 'focusInput'];
+    protected $listeners = [
+        'barcode-scanned' => 'handleScannedBarcode',
+        'focus-barcode-input' => 'focusInput',
+        'logTakeover' => 'logTakeover'
+    ];
+
+    public function logTakeover($previousOwner, $newOwner, $terminalId, $takeoverReason = 'Manual Operator Override')
+    {
+        \App\Models\WmsTerminalTakeoverLog::create([
+            'workflow' => 'stock_in',
+            'terminal_id' => $terminalId,
+            'previous_owner' => $previousOwner ?: 'UNKNOWN',
+            'new_owner' => $newOwner ?: auth()->user()->name,
+            'takeover_reason' => $takeoverReason,
+        ]);
+        
+        $this->dispatch('takeover-logged');
+    }
 
     public function mount()
     {
-        $this->cart = session()->get('stock_in_cart', []);
-        $this->last_used_bin_id = session()->get('stock_in_last_bin');
         $this->autoAddMode = session()->get('stock_in_auto_add', false);
+        $this->last_used_bin_id = session()->get('stock_in_last_bin');
+
+        // Single Active Session Operator Check (Scoped to active warehouse)
+        $existing = StockInReceipt::forActiveWarehouse()
+            ->where('user_id', auth()->id())
+            ->where('status', 'ACTIVE')
+            ->first();
+
+        if ($existing) {
+            $this->activeReceipt = $existing;
+            $this->showResumeModal = true;
+        } else {
+            $this->createNewReceiptSession();
+        }
     }
 
     public function updatedAutoAddMode($value)
     {
         session()->put('stock_in_auto_add', $value);
+    }
+
+    public function updatedBinCode($value)
+    {
+        if ($value) {
+            $bin = Bin::forActiveWarehouse()->where('code', $value)->first();
+            if ($bin) {
+                $this->bin_id = $bin->id;
+            }
+        } else {
+            $this->bin_id = null;
+        }
+    }
+
+    public function createNewReceiptSession()
+    {
+        $this->activeReceipt = StockInReceipt::create([
+            'receipt_code' => 'IN-' . auth()->id() . '-' . time(),
+            'user_id' => auth()->id(),
+            'status' => 'ACTIVE',
+            'last_activity_at' => now(),
+            'warehouse_id' => session('active_warehouse_id'),
+            'operator_id' => auth()->id(),
+            'terminal_id' => session('wms_terminal_id') ?: 'SPAREPART-DESK-A',
+            'terminal_session_id' => session()->getId(),
+        ]);
+
+        $this->loadCartFromActiveReceipt();
+    }
+
+    public function resumeSession()
+    {
+        if ($this->activeReceipt) {
+            $this->activeReceipt->update(['last_activity_at' => now()]);
+            $this->reference = $this->activeReceipt->purchase_order_ref ?? '';
+            $this->supplier_id = $this->activeReceipt->supplier_id;
+            $this->loadCartFromActiveReceipt();
+        }
+        $this->showResumeModal = false;
+        $this->dispatch('message-dispatched', message: 'Previous session resumed successfully!', type: 'success');
+        $this->dispatch('focus-barcode-input');
+    }
+
+    public function discardSession()
+    {
+        if ($this->activeReceipt) {
+            $this->activeReceipt->update(['status' => 'ABANDONED', 'last_activity_at' => now()]);
+        }
+
+        $this->createNewReceiptSession();
+        $this->showResumeModal = false;
+        $this->reference = '';
+        $this->supplier_id = null;
+        $this->dispatch('message-dispatched', message: 'Previous session discarded. New session started.', type: 'success');
+        $this->dispatch('focus-barcode-input');
+    }
+
+    public function loadCartFromActiveReceipt()
+    {
+        if (!$this->activeReceipt) {
+            $this->cart = [];
+            return;
+        }
+
+        $items = StockInItem::with(['variant.item', 'bin', 'supplier'])
+            ->where('stock_in_receipt_id', $this->activeReceipt->id)
+            ->get();
+
+        $this->cart = [];
+        foreach ($items as $item) {
+            $key = $item->item_variant_id . '-' . $item->bin_id . '-' . ($item->supplier_id ?? 'none');
+            $this->cart[$key] = [
+                'id' => $item->id,
+                'item_variant_id' => $item->item_variant_id,
+                'name' => $item->variant->item->name,
+                'erp_code' => $item->variant->erp_code,
+                'qty' => $item->qty,
+                'bin_id' => $item->bin_id,
+                'bin_name' => $item->bin->code,
+                'supplier_id' => $item->supplier_id,
+                'supplier_name' => $item->supplier ? $item->supplier->name : 'N/A',
+            ];
+        }
+    }
+
+    public function handleScannedBarcode($data)
+    {
+        $barcodeVal = $data['barcode'];
+        $qtyVal = $data['qty'] ?? 1;
+
+        $this->barcode = $barcodeVal;
+        $this->qty = $qtyVal;
+        $this->handleScan();
     }
 
     public function handleScan()
@@ -52,7 +183,7 @@ class StockInPage extends Component
         $barcodeService = new BarcodeService();
         $this->barcode = $barcodeService->normalize($this->barcode);
 
-        $barcodeObj = ItemBarcode::with(['variant.item', 'variant.suppliers'])
+        $barcodeObj = ItemBarcode::with(['variant.item', 'variant.suppliers', 'variant.images'])
             ->where('barcode', $this->barcode)
             ->first();
 
@@ -68,18 +199,31 @@ class StockInPage extends Component
             // Auto-fill bin
             if ($this->last_used_bin_id) {
                 $this->bin_id = $this->last_used_bin_id;
+                $bin = Bin::find($this->bin_id);
+                if ($bin) {
+                    $this->binCode = $bin->code;
+                }
             }
 
             if ($this->autoAddMode) {
                 $this->addToCart();
             } else {
-                $this->dispatch('scan-success');
+                $this->dispatch('scan-success', [
+                    'name' => $this->currentItem->item->name,
+                    'sku' => $this->currentItem->sku,
+                    'photo' => $this->currentItem->images->where('is_primary', true)->first() 
+                        ? asset('storage/' . $this->currentItem->images->where('is_primary', true)->first()->path) 
+                        : asset('images/placeholders/item.svg'),
+                    'bin' => $this->binCode ?: 'UNASSIGNED',
+                    'qty' => $this->qty
+                ]);
             }
         } else {
             $this->currentItem = null;
             $this->isNewItem = true;
             $this->erpCode = '';
             $this->itemName = '';
+            $this->dispatch('scan-failed', ['message' => 'Barcode not registered in WMS database.']);
         }
     }
 
@@ -106,7 +250,7 @@ class StockInPage extends Component
                 'is_primary' => true,
             ]);
 
-            $this->currentItem = $variant->load('item', 'suppliers');
+            $this->currentItem = $variant->load('item', 'suppliers', 'images');
             $this->isNewItem = false;
         });
 
@@ -121,6 +265,7 @@ class StockInPage extends Component
 
         if (!$this->bin_id) {
             $this->addError('bin_id', 'Destination bin is required.');
+            $this->dispatch('scan-failed', ['message' => 'Destination bin is required.']);
             return;
         }
 
@@ -133,31 +278,31 @@ class StockInPage extends Component
         $binId = $this->bin_id;
         $supplierId = $this->supplier_id;
 
-        // Strict aggregation key
-        $key = $variantId . '-' . $binId . '-' . ($supplierId ?? 'none');
+        // Sync to Database Draft items
+        StockInItem::updateOrCreate([
+            'stock_in_receipt_id' => $this->activeReceipt->id,
+            'item_variant_id' => $variantId,
+            'bin_id' => $binId,
+            'supplier_id' => $supplierId ?: null,
+        ], [
+            'qty' => DB::raw("qty + {$this->qty}"),
+        ]);
 
-        if (isset($this->cart[$key])) {
-            $this->cart[$key]['qty'] += $this->qty;
-        } else {
-            $bin = Bin::find($binId);
-            $supplier = $supplierId ? Supplier::find($supplierId) : null;
+        // Touch the receipt timestamp & update metadata
+        $this->activeReceipt->update([
+            'last_activity_at' => now(),
+            'supplier_id' => $this->supplier_id ?: null,
+            'purchase_order_ref' => $this->reference ?: null
+        ]);
 
-            $this->cart[$key] = [
-                'item_variant_id' => $variantId,
-                'name' => $this->currentItem->item->name,
-                'erp_code' => $this->currentItem->erp_code,
-                'qty' => $this->qty,
-                'bin_id' => $binId,
-                'bin_name' => $bin->code,
-                'supplier_id' => $supplierId,
-                'supplier_name' => $supplier ? $supplier->name : 'N/A',
-            ];
-        }
-
-        $this->lastAction = "+{$this->qty} " . $this->currentItem->item->name . " added to " . $this->cart[$key]['bin_name'];
+        $bin = Bin::find($binId);
+        $this->lastAction = "+{$this->qty} " . $this->currentItem->item->name . " added to " . ($bin ? $bin->code : 'Bin');
         $this->last_used_bin_id = $binId;
         
-        $this->persistCart();
+        // Sync local cart from Database
+        $this->loadCartFromActiveReceipt();
+
+        session()->put('stock_in_last_bin', $this->last_used_bin_id);
         
         // UX Reset
         $this->barcode = '';
@@ -170,25 +315,34 @@ class StockInPage extends Component
 
     public function removeFromCart($key)
     {
-        unset($this->cart[$key]);
-        $this->persistCart();
-    }
+        if (isset($this->cart[$key])) {
+            $itemData = $this->cart[$key];
+            
+            // Delete from Database
+            StockInItem::where('stock_in_receipt_id', $this->activeReceipt->id)
+                ->where('item_variant_id', $itemData['item_variant_id'])
+                ->where('bin_id', $itemData['bin_id'])
+                ->where('supplier_id', $itemData['supplier_id'])
+                ->delete();
 
-    private function persistCart()
-    {
-        session()->put('stock_in_cart', $this->cart);
-        session()->put('stock_in_last_bin', $this->last_used_bin_id);
+            unset($this->cart[$key]);
+
+            if ($this->activeReceipt) {
+                $this->activeReceipt->update(['last_activity_at' => now()]);
+            }
+        }
     }
 
     public function submit(InventoryService $inventoryService)
     {
-        if (empty($this->cart)) return;
+        if (empty($this->cart) || !$this->activeReceipt) return;
 
         try {
             DB::transaction(function () use ($inventoryService) {
                 foreach ($this->cart as $item) {
                     $bin = Bin::findOrFail($item['bin_id']);
                     
+                    // Commit active inventory stock adjustment
                     $inventoryService->moveStock(
                         $bin,
                         $item['qty'],
@@ -198,14 +352,24 @@ class StockInPage extends Component
                         $item['supplier_id']
                     );
                 }
+
+                // Commit Inbound Receipt Draft
+                $this->activeReceipt->update([
+                    'status' => 'COMMITTED',
+                    'supplier_id' => $this->supplier_id ?: null,
+                    'purchase_order_ref' => $this->reference ?: null,
+                    'last_activity_at' => now(),
+                ]);
             });
 
-            // Success Cleanup
+            // Cleanup & Start New Session
             $this->cart = [];
-            $this->persistCart();
-            $this->reset(['barcode', 'currentItem', 'qty', 'bin_id', 'supplier_id', 'lastAction', 'reference']);
+            $this->reset(['barcode', 'currentItem', 'qty', 'bin_id', 'binCode', 'supplier_id', 'lastAction', 'reference']);
             
+            $this->createNewReceiptSession();
+
             $this->dispatch('message-dispatched', message: 'Stock successfully committed to inventory!', type: 'success');
+            $this->dispatch('focus-barcode-input');
         } catch (\Exception $e) {
             $this->dispatch('message-dispatched', message: 'Error: ' . $e->getMessage(), type: 'error');
         }
@@ -221,10 +385,15 @@ class StockInPage extends Component
         $this->dispatch('message-dispatched', message: "New internal barcode generated: {$barcode}", type: 'success');
     }
 
+    public function focusInput()
+    {
+        $this->dispatch('focus-barcode-input');
+    }
+
     public function render()
     {
         return view('livewire.stock.stock-in-page', [
-            'bins' => Bin::orderBy('code')->get(),
+            'bins' => Bin::forActiveWarehouse()->orderBy('code')->get(),
             'suppliers' => Supplier::orderBy('name')->get(),
         ]);
     }

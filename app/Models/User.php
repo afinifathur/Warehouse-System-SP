@@ -22,6 +22,17 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class);
     }
 
+    public function warehouseAccess()
+    {
+        return $this->hasMany(UserWarehouseAccess::class);
+    }
+
+    public function warehouses()
+    {
+        return $this->belongsToMany(Warehouse::class, 'user_warehouse_access', 'user_id', 'warehouse_id')
+            ->withPivot(['can_stock_in', 'can_stock_out', 'can_opname', 'can_adjust', 'can_print', 'can_view_reports']);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

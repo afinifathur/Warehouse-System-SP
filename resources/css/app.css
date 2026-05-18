@@ -14,6 +14,26 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+    /* Spacing & Layout Tokens */
+    --spacing-xs: var(--space-xs);
+    --spacing-sm: var(--space-sm);
+    --spacing-md: var(--space-md);
+    --spacing-lg: var(--space-lg);
+    --spacing-xl: var(--space-xl);
+
+    /* Border Radius Tokens */
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-lg);
+
+    /* Typography Scale (Hard Minimum 11px) */
+    --text-xs: var(--text-xs);
+    --text-sm: var(--text-sm);
+    --text-md: var(--text-md);
+    --text-lg: var(--text-lg);
+    --text-xl: var(--text-xl);
+    --text-2xl: var(--text-2xl);
+
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-inter: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
@@ -91,6 +111,28 @@
 }
 
 @layer base {
+    :root {
+        /* Spacing Scale (~20% tighter) */
+        --space-xs: 0.25rem;  /* 4px */
+        --space-sm: 0.5rem;   /* 8px */
+        --space-md: 0.75rem;  /* 12px */
+        --space-lg: 1rem;     /* 16px */
+        --space-xl: 1.5rem;   /* 24px */
+
+        /* Border Radius */
+        --radius-sm: 0.375rem; /* 6px */
+        --radius-md: 0.5rem;   /* 8px */
+        --radius-lg: 0.75rem;  /* 12px */
+
+        /* Typography Scale (Hard Minimum 11px) */
+        --text-xs: 0.6875rem;  /* 11px - Metadata */
+        --text-sm: 0.75rem;    /* 12px - Body Text */
+        --text-md: 0.875rem;   /* 14px - Interactive / Table items */
+        --text-lg: 1rem;       /* 16px - Subheadings / Form labels */
+        --text-xl: 1.25rem;    /* 20px - Section Headings */
+        --text-2xl: 1.5rem;    /* 24px - Page Headings */
+    }
+
     body {
         font-family: var(--font-inter);
     }
@@ -110,5 +152,24 @@
     .no-scrollbar {
         -ms-overflow-style: none;
         scrollbar-width: none;
+    }
+
+    /* Restrained industrial scan-ready indicators */
+    .ready-to-scan-glow {
+        border: 2px solid var(--color-slate-200);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        transition: all 0.15s ease-in-out;
+    }
+    
+    .ready-to-scan-glow:focus-within {
+        border-color: #16a34a !important;
+        box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12) !important;
+    }
+
+    /* Monospace high-readability metrics */
+    .font-mono-scannable {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+        letter-spacing: 0.04em;
+        font-weight: 700;
     }
 }

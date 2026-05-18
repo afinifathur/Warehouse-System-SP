@@ -13,6 +13,16 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // Initialize Default Warehouse operational context
+        if (!session()->has('active_warehouse_id') && auth()->check()) {
+            $defaultWarehouse = auth()->user()->warehouses()->first();
+            if ($defaultWarehouse) {
+                session()->put('active_warehouse_id', $defaultWarehouse->id);
+                session()->put('active_warehouse_code', $defaultWarehouse->code);
+                session()->put('active_warehouse_name', $defaultWarehouse->name);
+            }
+        }
+
         // ─── KPI Cards ────────────────────────────────────────────────────
         $totalItems      = ItemVariant::count();
         $todayTx         = StockTransaction::whereDate('created_at', today())->count();

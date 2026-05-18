@@ -28,4 +28,25 @@ class Bin extends Model
     {
         return $this->belongsTo(ItemVariant::class);
     }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
+    public function scopeForActiveWarehouse($query)
+    {
+        $strict = env('WMS_GOVERNANCE_STRICT_MODE', true);
+        $activeWarehouseId = session()->get('active_warehouse_id');
+
+        if ($activeWarehouseId) {
+            return $query->where($this->getTable() . '.warehouse_id', $activeWarehouseId);
+        }
+
+        if ($strict) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query;
+    }
 }
